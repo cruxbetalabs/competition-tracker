@@ -1,0 +1,67 @@
+[
+  {
+    "event_name": "Boulder Bash 9",
+    "event_date": [
+      "2023-11-09",
+      "2023-11-10",
+      "2023-11-11",
+      "2023-11-12",
+      "2023-11-13",
+      "2023-11-14"
+    ],
+    "location": "Bridges Rock Gym",
+    "discipline": "bouldering",
+    "type": "announcement",
+    "summary": "Join us for Boulder Bash 9, our annual Fall bouldering competition, from November 9th to 14th at Bridges Rock Gym. The competition kicks off with a Redpoint Round, and the top 10 competitors will advance to the Onsight Finals on November 14th. Registration is $25 for members and $50 for non-members, with free entry for spectators.",
+    "posts": [
+      {
+        "url": "https://www.bridgesrockgym.com/events"
+      }
+    ]
+  },
+  {
+    "event_name": "USAC Youth + Collegiate QE",
+    "event_date": [
+      "2023-11-08"
+    ],
+    "location": "Bridges Rock Gym",
+    "discipline": null,
+    "type": "announcement",
+    "summary": "The USAC Youth + Collegiate Qualifier Event will take place on Saturday, November 8th at Bridges Rock Gym. Please note that the gym will be closed all day for this event.",
+    "posts": [
+      {
+        "url": "https://www.bridgesrockgym.com/events"
+      }
+    ]
+  },
+  {
+    "event_name": "California Climbing Team Onsight Series",
+    "event_date": [
+      "2023-11-09"
+    ],
+    "location": "Bridges Rock Gym",
+    "discipline": null,
+    "type": "announcement",
+    "summary": "The California Climbing Team Onsight Series is scheduled for Sunday, November 9th from 7am to 11am at Bridges Rock Gym. The gym will be closed during this time.",
+    "posts": [
+      {
+        "url": "https://www.bridgesrockgym.com/events"
+      }
+    ]
+  },
+  {
+    "event_name": "NorCal Youth Climbing League",
+    "event_date": [
+      "2023-11-22"
+    ],
+    "location": "Bridges Rock Gym",
+    "discipline": null,
+    "type": "announcement",
+    "summary": "The NorCal Youth Climbing League event will take place on Saturday, November 22nd at Bridges Rock Gym. The gym will be closed all day for this competition.",
+    "posts": [
+      {
+        "url": "https://www.bridgesrockgym.com/events"
+      }
+    ]
+  }
+]
