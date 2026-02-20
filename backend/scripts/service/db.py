@@ -3,10 +3,11 @@ db.py — PostgreSQL insertion helpers for competition-tracker.
 
 Table hierarchy
 ───────────────
-  gyms
-    └─ posts            raw scraped content     (*_posts.json)
-    └─ events           merged events           (*_events_merged.json)
-    └─ raw_events       LLM-parsed events       (*_events.json)
+  organizations
+    └─ gyms
+         └─ posts            raw scraped content     (*_posts.json)
+         └─ events           merged events           (*_events_merged.json)
+         └─ raw_events       LLM-parsed events       (*_events.json)
 
 All helpers accept an open psycopg2 cursor and return the inserted row id.
 Callers are responsible for commit / rollback.
@@ -38,6 +39,32 @@ def _clean_dates(dates: list | None) -> list[str] | None:
     return cleaned or None
 
 
+# ── organizations ────────────────────────────────────────────────────────────
+
+
+def ensure_organization(cur, name: str, *, slug: str) -> int:
+    """Insert organization if absent; return its id either way.
+
+    Parameters
+    ----------
+    name : str
+        Human-readable organization name, e.g. "Touchstone".
+    slug : str
+        URL-safe identifier, e.g. "touchstone".
+    """
+    cur.execute(
+        """
+        INSERT INTO organizations (slug, name)
+        VALUES (%s, %s)
+        ON CONFLICT (slug) DO UPDATE
+            SET name = COALESCE(EXCLUDED.name, organizations.name)
+        RETURNING id
+        """,
+        (slug, name),
+    )
+    return cur.fetchone()[0]
+
+
 # ── gyms ──────────────────────────────────────────────────────────────────────
 
 
@@ -49,26 +76,37 @@ def ensure_gym(
     address: str | None = None,
     city: str | None = None,
     organization: str | None = None,
+    organization_slug: str | None = None,
     google_plus_code: str | None = None,  # https://maps.google.com/pluscodes/
 ) -> int:
     """Insert gym if absent; return its id either way.
 
     Optional keyword arguments populate the corresponding columns when
     provided; existing rows are updated if any value differs.
+
+    If *organization* is given, ``ensure_organization`` is called first to
+    resolve (or create) the parent org and the resulting FK is stored in
+    ``gyms.organization_id``.  *organization_slug* is required when
+    *organization* is provided.
     """
+    organization_id: int | None = None
+    if organization:
+        org_slug = organization_slug or organization.lower().replace(" ", "-")
+        organization_id = ensure_organization(cur, organization, slug=org_slug)
+
     cur.execute(
         """
-        INSERT INTO gyms (slug, name, address, city, organization, google_plus_code)
+        INSERT INTO gyms (slug, name, address, city, organization_id, google_plus_code)
         VALUES (%s, %s, %s, %s, %s, %s)
         ON CONFLICT (slug) DO UPDATE
             SET name             = COALESCE(EXCLUDED.name,             gyms.name),
                 address          = COALESCE(EXCLUDED.address,          gyms.address),
                 city             = COALESCE(EXCLUDED.city,             gyms.city),
-                organization     = COALESCE(EXCLUDED.organization,     gyms.organization),
+                organization_id  = COALESCE(EXCLUDED.organization_id,  gyms.organization_id),
                 google_plus_code = COALESCE(EXCLUDED.google_plus_code, gyms.google_plus_code)
         RETURNING id
         """,
-        (slug, name, address, city, organization, google_plus_code),
+        (slug, name, address, city, organization_id, google_plus_code),
     )
     return cur.fetchone()[0]
 
@@ -76,25 +114,38 @@ def ensure_gym(
 # ── posts ─────────────────────────────────────────────────────────────────────
 
 
-def upsert_post(cur, gym_id: int, post: dict) -> int:
+def upsert_post(
+    cur,
+    post: dict,
+    *,
+    gym_id: int | None = None,
+    organization_id: int | None = None,
+) -> int:
     """
     Insert a raw scraped post; update caption/media on conflict.
+
+    At least one of *gym_id* or *organization_id* should be provided.
+    Org-level posts (e.g. scraped from @touchstoneclimbing) may have no
+    specific gym; gym posts without an org can leave organization_id as None.
 
     Expected keys (from *_posts.json):
         url, platform, caption, media_urls, timestamp
     """
     cur.execute(
         """
-        INSERT INTO posts (gym_id, url, platform, caption, media_urls, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO posts (gym_id, organization_id, url, platform, caption, media_urls, timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (url) DO UPDATE
-            SET caption    = EXCLUDED.caption,
-                media_urls = EXCLUDED.media_urls,
-                timestamp  = EXCLUDED.timestamp
+            SET gym_id          = COALESCE(EXCLUDED.gym_id,          posts.gym_id),
+                organization_id = COALESCE(EXCLUDED.organization_id, posts.organization_id),
+                caption         = EXCLUDED.caption,
+                media_urls      = EXCLUDED.media_urls,
+                timestamp       = EXCLUDED.timestamp
         RETURNING id
         """,
         (
             gym_id,
+            organization_id,
             post["url"],
             post.get("platform"),
             post.get("caption"),
@@ -105,7 +156,13 @@ def upsert_post(cur, gym_id: int, post: dict) -> int:
     return cur.fetchone()[0]
 
 
-def upsert_posts(cur, gym_id: int, posts: list[dict]) -> dict[str, int]:
+def upsert_posts(
+    cur,
+    posts: list[dict],
+    *,
+    gym_id: int | None = None,
+    organization_id: int | None = None,
+) -> dict[str, int]:
     """
     Bulk-upsert posts; return a {url: post_id} mapping.
     Psycopg2 doesn't support bulk RETURNING with execute_values for upserts
@@ -115,7 +172,12 @@ def upsert_posts(cur, gym_id: int, posts: list[dict]) -> dict[str, int]:
     for post in posts:
         url = post.get("url")
         if url:
-            url_to_id[url] = upsert_post(cur, gym_id, post)
+            url_to_id[url] = upsert_post(
+                cur,
+                post,
+                gym_id=gym_id,
+                organization_id=organization_id,
+            )
     return url_to_id
 
 
@@ -390,6 +452,44 @@ def get_unprocessed_posts(cur, gym: str) -> list[dict]:
         ORDER  BY p.timestamp ASC NULLS LAST
         """,
         (gym,),
+    )
+    cols = ["id", "url", "platform", "caption", "media_urls", "timestamp"]
+    rows = cur.fetchall()
+    return [
+        {
+            c: (v.isoformat() if hasattr(v, "isoformat") else v)
+            for c, v in zip(cols, row)
+        }
+        for row in rows
+    ]
+
+
+def get_unprocessed_org_posts(cur, org_slug: str, gym_id: int) -> list[dict]:
+    """
+    Return organization-level posts that have not yet been parsed *for this gym*.
+
+    These are posts stored under the organization (organization_id set, gym_id
+    may be NULL or point to a different gym) where no raw_events row exists
+    with both post_id = p.id AND gym_id = <gym_id>.
+
+    This allows org posts (e.g. @touchstoneclimbing) to be parsed once per
+    member gym without re-scraping and without skipping already-parsed combos.
+    """
+    cur.execute(
+        """
+        SELECT p.id, p.url, p.platform, p.caption, p.media_urls, p.timestamp
+        FROM   posts         p
+        JOIN   organizations o ON o.id = p.organization_id
+        WHERE  o.slug = %s
+          AND  NOT EXISTS (
+                   SELECT 1
+                   FROM   raw_events re
+                   WHERE  re.post_id = p.id
+                     AND  re.gym_id  = %s
+               )
+        ORDER  BY p.timestamp ASC NULLS LAST
+        """,
+        (org_slug, gym_id),
     )
     cols = ["id", "url", "platform", "caption", "media_urls", "timestamp"]
     rows = cur.fetchall()

@@ -1,5 +1,6 @@
 [
     {
+        "slug": "bridges-rock-gym",
         "name": "Bridges Rock Gym",
         "city": "Albany",
         "organization": null,
@@ -20,6 +21,7 @@
         ]
     },
     {
+        "slug": "mosaic-boulders",
         "name": "Mosaic Boulders",
         "city": "Berkeley",
         "organization": null,
@@ -36,12 +38,14 @@
         ]
     },
     {
+        "slug": "touchstone-training-center",
         "name": "Team Touchstone Training Center",
         "city": "Berkeley",
         "organization": "Touchstone",
         "social": []
     },
     {
+        "slug": "berkeley-ironworks",
         "name": "Berkeley Ironworks",
         "city": "Berkeley",
         "organization": "Touchstone",
@@ -53,6 +57,7 @@
         ]
     },
     {
+        "slug": "great-western-power-company",
         "name": "Great Western Power Company",
         "city": "Oakland",
         "organization": "Touchstone",
@@ -64,6 +69,7 @@
         ]
     },
     {
+        "slug": "pacific-pipe",
         "name": "Pacific Pipe",
         "city": "Oakland",
         "organization": "Touchstone",
@@ -75,6 +81,7 @@
         ]
     },
     {
+        "slug": "mission-cliffs",
         "name": "Mission Cliffs",
         "city": "San Francisco",
         "organization": "Touchstone",
@@ -86,6 +93,7 @@
         ]
     },
     {
+        "slug": "hyperion-climbing",
         "name": "Hyperion Climbing",
         "city": "Redwood City",
         "organization": "Touchstone",
@@ -97,6 +105,7 @@
         ]
     },
     {
+        "slug": "the-studio-climbing",
         "name": "The Studio Climbing",
         "city": "San Jose",
         "organization": "Touchstone",
@@ -108,6 +117,7 @@
         ]
     },
     {
+        "slug": "the-peak-of-fremont",
         "name": "The Peak of Fremont",
         "city": "Fremont",
         "organization": "Touchstone",
@@ -119,6 +129,7 @@
         ]
     },
     {
+        "slug": "the-oaks-climbing",
         "name": "The Oaks Climbing",
         "city": "Berkeley",
         "organization": "Touchstone",
@@ -130,6 +141,7 @@
         ]
     },
     {
+        "slug": "sacramento-pipeworks",
         "name": "Sacramento Pipeworks",
         "city": "Sacramento",
         "organization": "Touchstone",
@@ -141,6 +153,7 @@
         ]
     },
     {
+        "slug": "dogpatch-boulders",
         "name": "Dogpatch Boulders",
         "city": "San Francisco",
         "organization": "Touchstone",
@@ -152,6 +165,7 @@
         ]
     },
     {
+        "slug": "benchmark-climbing-berkeley",
         "name": "Benchmark Climbing",
         "city": "Berkeley",
         "organization": "Benchmark",
@@ -163,12 +177,14 @@
         ]
     },
     {
+        "slug": "benchmark-climbing-san-francisco",
         "name": "Benchmark Climbing",
         "city": "San Francisco",
         "organization": "Benchmark",
         "social": []
     },
     {
+        "slug": "movement-san-francisco",
         "name": "Movement San Francisco",
         "city": "San Francisco",
         "organization": "Movement",
@@ -180,6 +196,7 @@
         ]
     },
     {
+        "slug": "movement-belmont",
         "name": "Movement Belmont",
         "city": "Belmont",
         "organization": "Movement",
@@ -191,6 +208,7 @@
         ]
     },
     {
+        "slug": "movement-mountain-view",
         "name": "Movement Mountain View",
         "city": "Mountain View",
         "organization": "Movement",
@@ -202,6 +220,7 @@
         ]
     },
     {
+        "slug": "movement-sunnyvale",
         "name": "Movement Sunnyvale",
         "city": "Sunnyvale",
         "organization": "Movement",
@@ -213,6 +232,7 @@
         ]
     },
     {
+        "slug": "movement-santa-clara",
         "name": "Movement Santa Clara",
         "city": "Santa Clara",
         "organization": "Movement",
@@ -224,6 +244,7 @@
         ]
     },
     {
+        "slug": "gravity-vault-marin",
         "name": "Gravity Vault Marin",
         "city": "San Rafael",
         "organization": null,
@@ -235,6 +256,7 @@
         ]
     },
     {
+        "slug": "california-climbing-collective",
         "name": "California Climbing Collective",
         "city": "San Francisco",
         "organization": null,
@@ -246,6 +268,7 @@
         ]
     },
     {
+        "slug": "agility-boulders",
         "name": "Agility Boulders",
         "city": "Capitola",
         "organization": null,

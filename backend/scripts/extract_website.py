@@ -40,7 +40,7 @@ async def main(gym: str, url: str) -> None:
     try:
         cur = conn.cursor()
         gym_id = ensure_gym(cur, gym)
-        url_map = upsert_posts(cur, gym_id, posts)
+        url_map = upsert_posts(cur, posts, gym_id=gym_id)
         conn.commit()
         print(
             f"[db] Upserted {len(url_map)} post(s) into PostgreSQL  (gym_id={gym_id})"

@@ -16,13 +16,14 @@ playwright install firefox
 ```shell
 # for instagram post extraction
 python scripts/extract_instagram.py \
---gym bridgesrockgym \
+--profile mosaicboulders \
+--gym mosaic-boulders \
 --since 2025-10-01
 # --until 2026-02-19
 
 # for website article extraction
 python scripts/extract_website.py \
---gym bridgesrockgym \
+--gym bridges-rock-gym \
 --url https://www.bridgesrockgym.com/events
 ```
 
@@ -30,23 +31,24 @@ python scripts/extract_website.py \
 
 ```shell
 python scripts/parse.py \
---gym bridgesrockgym
+--gym mosaic-boulders
+# --include-org-posts  (also parse unprocessed posts from the org account)
 ```
 
 3. **Merge** : constructing `events` from `raw_events` 
 
 ```shell
 python scripts/merge.py \
---gym bridgesrockgym
+--gym mosaic-boulders
 ```
 
 4. **Manual merge** `events` entries
 
 ```shell
 python scripts/merge_manual.py \
---gym bridgesrockgym \
---from 2 6 \
---to 1
+--gym mosaic-boulders \
+--from 30 \
+--to 29
 
 # to-do: we may need to support cross-gym merge in the future
 ```

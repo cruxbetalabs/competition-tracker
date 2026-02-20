@@ -107,15 +107,21 @@ MERGE_COMMANDS_PROMPT = textwrap.dedent(
     Two records refer to the same event when ANY of the following holds:
     A. Their event_names are equivalent — same words, ignoring case, punctuation, and
        minor spelling variants (e.g. "Telegraph Turn-Up" = "Telegraph Turn Up" = "telegraph turn up").
-    B. Same event_date(s).
-    C. One record's summary clearly refers to the named event in another record
-       (e.g. summary says "SV Classic" and the other record is named "SV Classic").
+    B. Their event_date arrays share at least one identical date AND their names are
+       not clearly different events (see Step 2 blockers).
+    C. One record's summary explicitly names the event from another record
+       (e.g. summary says "SV Classic" and the other record is literally named "SV Classic").
+       Thematic similarity is NOT enough — the exact event name must appear.
 
     ── STEP 2: apply hard blockers ──────────────────────────────────────────────
     Do NOT merge records that would otherwise qualify if:
     a. Their names include different edition years (e.g. "Event 2025" vs "Event 2026").
     b. Their names include different series identifiers (e.g. "Series Round 1" vs "Series Round 2").
     c. They have explicitly conflicting venues.
+    d. Their names are clearly different events — two distinct proper names that do not
+       refer to the same competition (e.g. "Woman Up 2026" and "Battle of the Bay 2026"
+       are different events and must NEVER be merged, even if posted by the same gym).
+    e. Their event_date arrays have no overlap (no shared date).
 
     ── STEP 3: ensure transitivity ──────────────────────────────────────────────
     If record A merges with B, and B merges with C, then A, B, and C must all appear
@@ -132,12 +138,15 @@ MERGE_COMMANDS_PROMPT = textwrap.dedent(
         "command": "MERGE",
         "ids": [<int>, ...],
         "canonical_name": "<proper event name, or null to auto-pick>",
-        "reason": "<1-2 sentences why>"
+        "criterion": "<exactly one of: A | B | C — the criterion from Step 1 that triggered this merge>",
+        "reason": "<1-2 sentences citing the specific matching names, dates, or summary text that satisfied the criterion>"
       }
     ]
     - Output ONLY a valid JSON array. No markdown, no explanation, no code fences.
     - Each id appears in at most one MERGE command.
     - Only include records that need merging — omit singletons.
     - ids must contain at least 2 elements.
+    - Before emitting any MERGE command, verify that none of the Step 2 blockers apply.
+      If a blocker applies, do not emit the command at all.
     """
 ).strip()

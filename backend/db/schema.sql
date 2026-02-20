@@ -3,12 +3,23 @@
 --
 -- Table hierarchy
 -- ───────────────
---   gyms
---     └─ posts        raw scraped content (*_posts.json)
---     └─ events       merged events       (*_events_merged.json)
---          └─ raw_events  LLM-parsed events (*_events.json)
---                         post_id  → posts.id   (which post it came from)
---                         event_id → events.id  (which merged event it belongs to)
+--   organizations
+--     └─ gyms
+--          └─ posts        raw scraped content (*_posts.json)
+--          └─ events       merged events       (*_events_merged.json)
+--               └─ raw_events  LLM-parsed events (*_events.json)
+--                              post_id  → posts.id   (which post it came from)
+--                              event_id → events.id  (which merged event it belongs to)
+
+-- ── organizations ─────────────────────────────────────────────────────────────
+-- Parent chains that own one or more gym locations.
+-- e.g. "Touchstone", "Movement", "Benchmark"
+CREATE TABLE IF NOT EXISTS organizations (
+    id         SERIAL PRIMARY KEY,
+    slug       TEXT UNIQUE NOT NULL,   -- e.g. "touchstone"
+    name       TEXT UNIQUE NOT NULL,   -- e.g. "Touchstone"
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- ── gyms ──────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS gyms (
@@ -17,17 +28,22 @@ CREATE TABLE IF NOT EXISTS gyms (
     name             TEXT,                   -- e.g. "Benchmark Climbing"
     address          TEXT,
     city             TEXT,
-    organization     TEXT,
+    organization_id  INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
     google_plus_code TEXT,
     created_at       TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_gyms_organization_id ON gyms (organization_id);
 
 -- ── posts ─────────────────────────────────────────────────────────────────────
 -- Raw scraped content produced by extract_instagram.py / extract_website.py
 -- and stored in *_posts.json.
 CREATE TABLE IF NOT EXISTS posts (
-    id          SERIAL PRIMARY KEY,
-    gym_id      INTEGER REFERENCES gyms(id) ON DELETE SET NULL,
+    id               SERIAL PRIMARY KEY,
+    gym_id           INTEGER REFERENCES gyms(id)          ON DELETE SET NULL,
+    organization_id  INTEGER REFERENCES organizations(id) ON DELETE SET NULL,
+    -- at least one of gym_id / organization_id should be set;
+    -- org-level posts (e.g. @touchstoneclimbing) may have no specific gym
 
     url         TEXT UNIQUE NOT NULL,  -- canonical source URL
     platform    TEXT,                  -- 'instagram' | 'website' | 'others'
@@ -38,8 +54,9 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_posts_gym_id   ON posts (gym_id);
-CREATE INDEX IF NOT EXISTS idx_posts_platform ON posts (platform);
+CREATE INDEX IF NOT EXISTS idx_posts_gym_id          ON posts (gym_id);
+CREATE INDEX IF NOT EXISTS idx_posts_organization_id ON posts (organization_id);
+CREATE INDEX IF NOT EXISTS idx_posts_platform        ON posts (platform);
 
 -- ── events ────────────────────────────────────────────────────────────────────
 -- Merged event records produced by merge_executor / merge.py.

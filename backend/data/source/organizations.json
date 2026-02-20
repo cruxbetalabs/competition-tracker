@@ -1,40 +1,48 @@
 [
     {
+        "slug": "usaclimbing",
         "organization": "USA Climbing",
         "platform": "website",
         "url": "https://usaclimbing.org"
     },
     {
+        "slug": "touchstone",
         "organization": "Touchstone",
         "platform": "instagram",
         "url": "https://www.instagram.com/touchstoneclimbing/"
     },
     {
+        "slug": "touchstone",
         "organization": "Touchstone",
         "platform": "instagram",
         "url": "https://www.instagram.com/touchstone_routesetters/"
     },
     {
+        "slug": "touchstone",
         "organization": "Touchstone",
         "platform": "instagram",
         "url": "https://www.instagram.com/teamtouchstone/"
     },
     {
+        "slug": "benchmark",
         "organization": "Benchmark",
         "platform": "instagram",
         "url": "https://www.instagram.com/benchmarkbeta/"
     },
     {
+        "slug": "benchmark",
         "organization": "Benchmark",
         "platform": "instagram",
         "url": "https://www.instagram.com/benchmarkclimbing/"
     },
     {
+        "slug": "movement",
         "organization": "Movement",
         "platform": "instagram",
         "url": "https://www.instagram.com/movementgymsbayarea/"
     },
     {
+        "slug": "movement",
         "organization": "Movement",
         "platform": "website",
         "url": "https://blog.movementgyms.com/"
