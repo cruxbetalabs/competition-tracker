@@ -47,6 +47,10 @@ EXTRACTION_PROMPT = textwrap.dedent(
     - yoga classes, kids programs,
     - route-setting announcements not tied to a comp,
     - merchandise sales, gym closures, fundraisers, or purely social events.
+    - posts about athletes from the gym competing at an external event hosted elsewhere
+      (e.g. congratulating their climbers at the IFSC World Championships, USA Climbing
+      Nationals, or any other competition not hosted at or by this gym). These are athlete
+      shoutouts, not events hosted by the posting gym — ignore them entirely.
 
     Each item in the array must follow this exact schema:
 {_EXTRACTION_SCHEMA}
@@ -72,6 +76,15 @@ EXTRACTION_PROMPT = textwrap.dedent(
       2025-10-01 post most likely falls in 2025 or early 2026; do NOT default to an arbitrary past
       year. If the year cannot be confidently inferred, omit the date entirely (use null) rather
       than guessing.
+    - Date inference: NEVER fabricate or guess an event_date, e.g., from date_posted. A date must
+      be grounded in explicit textual evidence. For example, a specific date/month/day stated in the content,
+      a countdown that lets you calculate forward from date_posted (e.g. "2 weeks away" posted on
+      2025-10-01 → ~2025-10-15), or a clear relative reference ("this Saturday", "next month").
+      If the content gives no such evidence, set event_date to null.
+    - event_date must reflect the date(s) the competition itself takes place. Registration open/close
+      dates, sign-up deadlines, and waitlist dates are NOT event dates — do not use them for
+      event_date. If only a registration date is mentioned and no competition date can be inferred,
+      set event_date to null.
 
     Summary rules: keep summaries between 2–4 sentences. Tailor content by type:
     - announcement: Must include the competition discipline (bouldering/top-rope/lead/speed/mixed),
@@ -87,52 +100,44 @@ EXTRACTION_PROMPT = textwrap.dedent(
 MERGE_COMMANDS_PROMPT = textwrap.dedent(
     """
     You are a data normalisation assistant for rock climbing competition records.
-    You will receive a JSON array of event records, each identifiable by its `id` field
-    (the database primary key). Your only job is to decide which records refer to the same
-    real-world event and output a list of MERGE commands.
+    You will receive a JSON array of event records, each with an `id` field (database PK).
+    Decide which records refer to the same real-world event and output MERGE commands.
 
-    MERGE RULES — apply in priority order:
-    0. Hard blockers — NEVER merge when any of the following apply:
-       a. Different edition year: events sharing a name but with different year numbers
-          (e.g. "Climbing Event Name 2025" vs "Climbing Event Name 2026") are distinct annual
-          editions.
-       b. Different numbered or subtitled event within a series: if the names include
-          distinct identifiers such as event numbers, round names, or subtitles
-          (e.g. "Climbing Series - Event A" vs "Climbing Series - Event B"), 
-          they are separate events even if they share a parent series name, 
-          appeared in the same source post, or have overlapping dates.
-       c. Conflicting venue.
-    1. Identical event_name (same year, or no year present) → always merge.
-    2. Identical event_date(s) + same location → always merge.
-    3. Equivalent names (share a distinctive proper noun / nickname) + same venue or
-       adjacent dates (within ~3 days) → merge.
-    4. A record whose summary explicitly names the proper event name of another record
-       (e.g. summary says "the bouldering comp of the summer hits Sunnyvale" and another
-       record is named "SV Classic" at Sunnyvale on the same date) → merge, even if the
-       event_names differ.
-    5. Generic descriptors ("Last Bouldering Competition of the Year",
-       "Summer Bouldering Competition", "Only 2 days left…") are NOT canonical names.
-       When merging such a record with one that has a proper event name, the proper name
-       is canonical.
+    ── STEP 1: group by identity ────────────────────────────────────────────────
+    Two records refer to the same event when ANY of the following holds:
+    A. Their event_names are equivalent — same words, ignoring case, punctuation, and
+       minor spelling variants (e.g. "Telegraph Turn-Up" = "Telegraph Turn Up" = "telegraph turn up").
+    B. Same event_date(s).
+    C. One record's summary clearly refers to the named event in another record
+       (e.g. summary says "SV Classic" and the other record is named "SV Classic").
 
-    Date note: event_date values may be off by 1–2 days due to extraction noise.
+    ── STEP 2: apply hard blockers ──────────────────────────────────────────────
+    Do NOT merge records that would otherwise qualify if:
+    a. Their names include different edition years (e.g. "Event 2025" vs "Event 2026").
+    b. Their names include different series identifiers (e.g. "Series Round 1" vs "Series Round 2").
+    c. They have explicitly conflicting venues.
 
-    Output format — a JSON array of MERGE commands, or [] if nothing to merge:
+    ── STEP 3: ensure transitivity ──────────────────────────────────────────────
+    If record A merges with B, and B merges with C, then A, B, and C must all appear
+    in a single MERGE command — never in separate commands.
+
+    ── STEP 4: canonical name ───────────────────────────────────────────────────
+    Use the most specific proper name among the grouped records.
+    Generic phrases ("Last comp of the year", "Only 2 days left…") are never canonical.
+
+    ── OUTPUT ───────────────────────────────────────────────────────────────────
+    A JSON array of MERGE commands ([] if nothing to merge):
     [
       {
         "command": "MERGE",
         "ids": [<int>, ...],
-        "canonical_name": "<the real proper event name to use, or null to auto-pick>",
+        "canonical_name": "<proper event name, or null to auto-pick>",
         "reason": "<1-2 sentences why>"
       }
     ]
-
-    Rules:
     - Output ONLY a valid JSON array. No markdown, no explanation, no code fences.
-    - Each `id` must appear in at most one MERGE command.
-    - Only include records that need merging — omit singletons entirely.
+    - Each id appears in at most one MERGE command.
+    - Only include records that need merging — omit singletons.
     - ids must contain at least 2 elements.
-    - Set canonical_name to the most specific proper event name present in the grouped
-      records. Use null only if all names are equally generic.
     """
 ).strip()

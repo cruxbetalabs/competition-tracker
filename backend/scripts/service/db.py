@@ -128,13 +128,15 @@ def insert_event(cur, gym_id: int, event: dict) -> int:
 
     Expected keys (from *_events_merged.json top level):
         event_name, event_date, discipline, summary, reason
+    Optional:
+        hidden (bool, default True)
     """
     cur.execute(
         """
         INSERT INTO events
             (gym_id, event_name, event_dates, discipline,
-             summary, merge_reason)
-        VALUES (%s, %s, %s::date[], %s, %s, %s)
+             summary, merge_reason, hidden)
+        VALUES (%s, %s, %s::date[], %s, %s, %s, %s)
         RETURNING id
         """,
         (
@@ -144,6 +146,7 @@ def insert_event(cur, gym_id: int, event: dict) -> int:
             event.get("discipline"),
             event.get("summary"),
             event.get("reason") or event.get("merge_reason"),
+            event.get("hidden", True),
         ),
     )
     return cur.fetchone()[0]
@@ -161,7 +164,7 @@ def get_events_by_ids(cur, ids: list[int]) -> list[dict]:
     cur.execute(
         """
         SELECT id, event_name, event_dates, discipline,
-               summary, merge_reason
+               summary, merge_reason, hidden
         FROM   events
         WHERE  id = ANY(%s)
         ORDER  BY id ASC
@@ -175,6 +178,7 @@ def get_events_by_ids(cur, ids: list[int]) -> list[dict]:
         "discipline",
         "summary",
         "merge_reason",
+        "hidden",
     ]
     events = []
     for row in cur.fetchall():

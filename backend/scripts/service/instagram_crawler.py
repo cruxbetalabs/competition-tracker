@@ -103,6 +103,8 @@ def _node_to_post(node: dict) -> dict | None:
 
         post_dt = datetime.fromtimestamp(int(ts_raw), tz=timezone.utc)
         shortcode = node.get("code") or node.get("shortcode") or ""
+        if not shortcode:
+            return None
 
         caption_field = node.get("caption") or {}
         caption = _sanitize(

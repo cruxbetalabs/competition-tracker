@@ -49,37 +49,55 @@ async def main(gym: str, output_path: Path | None) -> None:
 
     print(f"[parse] Found {len(posts)} unprocessed post(s) for '{gym}'")
 
-    # ── LLM extraction ────────────────────────────────────────────────────────
+    # ── LLM extraction + per-post DB insert ───────────────────────────────────
     extractor = EventExtractor(env_file=_ENV_FILE)
-    events, token_summary = await extractor.extract_all_posts(posts)
-    extractor.get_stat(token_summary)
+    total_tokens = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    all_events: list[dict] = []
+    total_inserted = 0
+
+    for i, post in enumerate(posts, 1):
+        print(f"  [llm] {i}/{len(posts)}  {post.get('url', '?')}")
+        try:
+            events, summary = await extractor.extract_post(post)
+        except Exception as exc:
+            print(f"         [warn] extraction failed: {exc}")
+            continue
+
+        for k in total_tokens:
+            total_tokens[k] += summary[k]
+
+        if events:
+            print(f"         → {len(events)} event(s) found")
+        else:
+            print("         → no qualifying events")
+            continue
+
+        all_events.extend(events)
+
+        # Insert this post's events immediately
+        url_map: dict[str, int] = (
+            {post["url"]: post["id"]} if post.get("url") and post.get("id") else {}
+        )
+        conn = connect()
+        try:
+            cur = conn.cursor()
+            gym_id = ensure_gym(cur, gym)
+            ids = bulk_insert_raw_events(cur, gym_id, events, url_to_post_id=url_map)
+            conn.commit()
+            total_inserted += len(ids)
+            print(f"         → {len(ids)} raw_event(s) inserted (gym_id={gym_id})")
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    extractor.get_stat(total_tokens)
+    print(f"\n[db] Total raw_event(s) inserted: {total_inserted}")
 
     # ── Optional debug JSON export ────────────────────────────────────────────
     if output_path:
-        extractor.save_events(events, output_path)
-
-    # ── Export to DB (always) ─────────────────────────────────────────────────
-    # Build url → post_id map from the posts we just loaded (they carry their DB id).
-    url_map: dict[str, int] = {
-        p["url"]: p["id"] for p in posts if p.get("url") and p.get("id")
-    }
-
-    conn = connect()
-    try:
-        cur = conn.cursor()
-        gym_id = ensure_gym(cur, gym)
-        ids = bulk_insert_raw_events(
-            cur, gym_id, events, url_to_post_id=url_map, gym=gym
-        )
-        conn.commit()
-        print(
-            f"[db] Inserted {len(ids)} raw_event(s) into PostgreSQL  (gym_id={gym_id})"
-        )
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+        extractor.save_events(all_events, output_path)
 
 
 if __name__ == "__main__":

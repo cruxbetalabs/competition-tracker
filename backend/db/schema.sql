@@ -50,9 +50,10 @@ CREATE TABLE IF NOT EXISTS events (
 
     event_name   TEXT NOT NULL,
     event_dates  DATE[],              -- union of all dates across merged raw_events
-    discipline   TEXT CHECK (discipline IN ('bouldering', 'top-rope', 'lead', 'mixed')),
+    discipline   TEXT CHECK (discipline IN ('bouldering', 'top-rope', 'lead', 'mixed', 'speed')),
     summary      TEXT,
     merge_reason TEXT,                -- "reason" field from merge_executor
+    hidden       BOOLEAN DEFAULT TRUE, -- hide from public view until manually approved
 
     created_at   TIMESTAMPTZ DEFAULT NOW()
 );

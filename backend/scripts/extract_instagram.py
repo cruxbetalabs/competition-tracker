@@ -93,9 +93,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--until",
-        required=True,
+        default=None,
         type=lambda s: datetime.fromisoformat(s).replace(tzinfo=timezone.utc),
-        help="End date (inclusive), ISO format: 2026-02-16",
+        help="End date (inclusive), ISO format: 2026-02-16.  Defaults to today.",
     )
     parser.add_argument(
         "--headless",
@@ -109,11 +109,15 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    until = args.until or datetime.now(tz=timezone.utc).replace(
+        hour=23, minute=59, second=59, microsecond=0
+    )
+
     asyncio.run(
         main(
             gym=args.gym,
             since=args.since,
-            until=args.until,
+            until=until,
             headless=args.headless,
             force_login=args.force_login,
         )

@@ -14,11 +14,13 @@ playwright install firefox
 1. **Extract** from IG/website/calendar in `posts`
 
 ```shell
+# for instagram post extraction
 python scripts/extract_instagram.py \
 --gym bridgesrockgym \
---since 2025-10-01 \
---until 2026-02-19
+--since 2025-10-01
+# --until 2026-02-19
 
+# for website article extraction
 python scripts/extract_website.py \
 --gym bridgesrockgym \
 --url https://www.bridgesrockgym.com/events
@@ -45,6 +47,8 @@ python scripts/merge_manual.py \
 --gym bridgesrockgym \
 --from 2 6 \
 --to 1
+
+# to-do: we may need to support cross-gym merge in the future
 ```
 
 ## Database connection
