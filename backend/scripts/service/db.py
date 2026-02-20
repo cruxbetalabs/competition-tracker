@@ -45,6 +45,7 @@ def ensure_gym(
     cur,
     slug: str,
     *,
+    name: str | None = None,
     address: str | None = None,
     city: str | None = None,
     organization: str | None = None,
@@ -57,16 +58,17 @@ def ensure_gym(
     """
     cur.execute(
         """
-        INSERT INTO gyms (slug, address, city, organization, google_plus_code)
-        VALUES (%s, %s, %s, %s, %s)
+        INSERT INTO gyms (slug, name, address, city, organization, google_plus_code)
+        VALUES (%s, %s, %s, %s, %s, %s)
         ON CONFLICT (slug) DO UPDATE
-            SET address          = COALESCE(EXCLUDED.address,          gyms.address),
+            SET name             = COALESCE(EXCLUDED.name,             gyms.name),
+                address          = COALESCE(EXCLUDED.address,          gyms.address),
                 city             = COALESCE(EXCLUDED.city,             gyms.city),
                 organization     = COALESCE(EXCLUDED.organization,     gyms.organization),
                 google_plus_code = COALESCE(EXCLUDED.google_plus_code, gyms.google_plus_code)
         RETURNING id
         """,
-        (slug, address, city, organization, google_plus_code),
+        (slug, name, address, city, organization, google_plus_code),
     )
     return cur.fetchone()[0]
 

@@ -14,6 +14,7 @@
 CREATE TABLE IF NOT EXISTS gyms (
     id               SERIAL PRIMARY KEY,
     slug             TEXT UNIQUE NOT NULL,   -- e.g. "benchmarkclimbing"
+    name             TEXT,                   -- e.g. "Benchmark Climbing"
     address          TEXT,
     city             TEXT,
     organization     TEXT,
