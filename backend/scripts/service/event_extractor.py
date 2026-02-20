@@ -14,7 +14,7 @@ from dotenv import dotenv_values
 from openai import AsyncOpenAI
 
 from .merge_executor import apply_commands
-from .prompts import EXTRACTION_PROMPT, MERGE_COMMANDS_PROMPT
+from .prompts import MERGE_COMMANDS_PROMPT, build_extraction_prompt
 
 
 class EventExtractor:
@@ -46,6 +46,7 @@ class EventExtractor:
         source_url: str,
         platform: str = "website",
         date_posted: str | None = None,
+        gym_context: dict | None = None,
     ) -> tuple[list[dict], dict]:
         """
         Run the extraction prompt over *content* and return
@@ -62,6 +63,10 @@ class EventExtractor:
         date_posted : str | None
             ISO 8601 calendar date of the post, forwarded to the model for
             context.
+        gym_context : dict | None
+            Optional dict with ``name`` and ``city`` keys. When provided
+            (e.g. when processing organisation-level posts), the LLM is
+            instructed to only extract events hosted at this specific gym.
         """
 
         header_parts = [
@@ -84,7 +89,7 @@ class EventExtractor:
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": EXTRACTION_PROMPT},
+                {"role": "system", "content": build_extraction_prompt(gym_context)},
                 {"role": "user", "content": prompt},
             ],
             temperature=0,
@@ -103,11 +108,19 @@ class EventExtractor:
 
     # ── Post helpers ─────────────────────────────────────────────────────────
 
-    async def extract_post(self, post: dict) -> tuple[list[dict], dict]:
+    async def extract_post(
+        self,
+        post: dict,
+        gym_context: dict | None = None,
+    ) -> tuple[list[dict], dict]:
         """
         Extract events from a single post dict.
         Supports any platform — expected keys:
             url, platform, caption, media_urls, timestamp (ISO 8601 | None)
+
+        gym_context : dict | None
+            When set, restricts extraction to events at the named gym.
+            Pass when processing organisation-level (org) posts.
         """
         # Build a compact text representation of the post.
         # media_urls are intentionally excluded from the LLM prompt — they are
@@ -123,6 +136,7 @@ class EventExtractor:
             source_url=post.get("url", ""),
             platform=post.get("platform", "others"),
             date_posted=date_posted,
+            gym_context=gym_context,
         )
 
         # Copy the original media URLs directly — no LLM involvement.

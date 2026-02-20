@@ -31,24 +31,24 @@ python scripts/extract_website.py \
 
 ```shell
 python scripts/parse.py \
---gym mosaic-boulders
-# --include-org-posts  (also parse unprocessed posts from the org account)
+--gym hyperion-climbing \
+--include-org-posts # (also parse unprocessed posts from the org account)
 ```
 
 3. **Merge** : constructing `events` from `raw_events` 
 
 ```shell
 python scripts/merge.py \
---gym mosaic-boulders
+--gym hyperion-climbing
 ```
 
 4. **Manual merge** `events` entries
 
 ```shell
 python scripts/merge_manual.py \
---gym mosaic-boulders \
---from 30 \
---to 29
+--gym hyperion-climbing \
+--from 34 \
+--to 33
 
 # to-do: we may need to support cross-gym merge in the future
 ```
@@ -69,3 +69,7 @@ python -c \
 # OR
 docker compose exec db psql -U crux -d competition_tracker -c "\dt"
 ```
+
+## To-do
+
+- [ ] Set up an additional pipe to be able to infer whther this event is professional or non-professional

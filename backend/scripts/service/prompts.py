@@ -97,6 +97,43 @@ EXTRACTION_PROMPT = textwrap.dedent(
 """
 ).strip()
 
+
+def build_extraction_prompt(gym_context: dict | None = None) -> str:
+    """
+    Return EXTRACTION_PROMPT, optionally extended with a target-gym filter.
+
+    gym_context should be a dict with at least a ``name`` key and optionally
+    a ``city`` key — e.g. ``{"name": "Hyperion Climbing", "city": "Berkeley"}``.
+    When provided, the LLM is instructed to extract only events hosted at that
+    specific gym, which is important when parsing organisation-level posts that
+    may mention events at multiple gyms within the same chain.
+    """
+    if not gym_context:
+        return EXTRACTION_PROMPT
+    name = gym_context.get("name", "")
+    city = gym_context.get("city", "")
+    location_str = f"{name}, {city}" if city else name
+    filter_section = textwrap.dedent(
+        f"""
+
+    ── TARGET GYM FILTER (hard rule — overrides all other instructions) ──────
+    This post was published by a parent organisation, not by the gym itself.
+    You MUST extract ONLY events whose location is: {location_str}.
+
+    Hard rules:
+    1. If an event's location field would be anything other than {location_str},
+       do NOT include that event — omit it entirely.
+    2. Events at sibling gyms, other venues, or unspecified locations must be
+       skipped even if the post mentions them.
+    3. If no events in the post are at {location_str}, return [].
+
+    Example: if the post mentions 'Battle of the Bay at Hyperion' and the target
+    gym is '{location_str}', you MUST return [] because that event is at Hyperion,
+    not at {location_str}.
+    """
+    ).rstrip()
+    return EXTRACTION_PROMPT + filter_section
+
 MERGE_COMMANDS_PROMPT = textwrap.dedent(
     """
     You are a data normalisation assistant for rock climbing competition records.

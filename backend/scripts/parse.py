@@ -54,6 +54,26 @@ def _get_org_slug(gym_slug: str) -> str | None:
     )
 
 
+def _get_org_name(gym_slug: str) -> str | None:
+    """Return the raw organization name for *gym_slug*, or None if independent."""
+    gyms: list[dict] = json.loads(_GYMS_FILE.read_text())
+    for entry in gyms:
+        if entry.get("slug") == gym_slug:
+            return entry.get("organization") or None
+    return None
+
+
+def _get_gym_context(gym_slug: str) -> dict | None:
+    """Return {"name": ..., "city": ...} for *gym_slug* from gyms.json, or None."""
+    gyms: list[dict] = json.loads(_GYMS_FILE.read_text())
+    for entry in gyms:
+        if entry.get("slug") == gym_slug:
+            name = entry.get("name") or ""
+            city = entry.get("city") or ""
+            return {"name": name, "city": city}
+    return None
+
+
 async def main(gym: str, output_path: Path | None, include_org_posts: bool) -> None:
     # ── Load unprocessed posts from DB ────────────────────────────────────────
     conn = connect()
@@ -65,7 +85,15 @@ async def main(gym: str, output_path: Path | None, include_org_posts: bool) -> N
         org_posts: list[dict] = []
         if include_org_posts:
             org_slug = _get_org_slug(gym)
-            if org_slug:
+            org_name = _get_org_name(gym)
+            gym_ctx = _get_gym_context(gym)
+            gym_name = (gym_ctx or {}).get("name", "")
+            if org_name and gym_name and org_name.lower() == gym_name.lower():
+                print(
+                    f"[parse] '{gym}' is its own organisation ('{org_name}') "
+                    f"— skipping org posts to avoid duplicates."
+                )
+            elif org_slug:
                 org_posts = get_unprocessed_org_posts(cur, org_slug, gym_id)
                 print(
                     f"[parse] Found {len(org_posts)} unprocessed org post(s) "
@@ -78,6 +106,10 @@ async def main(gym: str, output_path: Path | None, include_org_posts: bool) -> N
     finally:
         conn.close()
 
+    # Tag org posts so the extraction loop can apply the gym-context filter
+    for p in org_posts:
+        p["_is_org_post"] = True
+
     # Deduplicate by post id (gym posts take precedence, org posts fill in the rest)
     seen_ids: set[int] = {p["id"] for p in posts}
     posts = posts + [p for p in org_posts if p["id"] not in seen_ids]
@@ -89,18 +121,46 @@ async def main(gym: str, output_path: Path | None, include_org_posts: bool) -> N
     print(f"[parse] Found {len(posts)} unprocessed post(s) for '{gym}' (total)")
 
     # ── LLM extraction + per-post DB insert ───────────────────────────────────
+    from service.prompts import build_extraction_prompt
     extractor = EventExtractor(env_file=_ENV_FILE)
+    gym_context = _get_gym_context(gym)
+
+    if gym_context and include_org_posts:
+        print("\n[parse] ── gym-context filter prompt (appended for org posts) ──")
+        print(build_extraction_prompt(gym_context))
+        print("[parse] ────────────────────────────────────────────────────────\n")
+
     total_tokens = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
     all_events: list[dict] = []
     total_inserted = 0
 
     for i, post in enumerate(posts, 1):
-        print(f"  [llm] {i}/{len(posts)}  {post.get('url', '?')}")
+        is_org_post = post.get("_is_org_post", False)
+        ctx = gym_context if is_org_post else None
+        print(f"  [llm] {i}/{len(posts)}  {post.get('url', '?')}{' [org→gym filter]' if is_org_post else ''}")
         try:
-            events, summary = await extractor.extract_post(post)
+            events, summary = await extractor.extract_post(post, gym_context=ctx)
         except Exception as exc:
             print(f"         [warn] extraction failed: {exc}")
             continue
+
+        # Python-side safety net for org posts: drop any event whose location
+        # clearly belongs to a different gym.  We accept the event if:
+        #   • location is null/empty (LLM couldn't determine it), OR
+        #   • location contains the gym name or city (case-insensitive).
+        if is_org_post and gym_context:
+            gym_name_lower = (gym_context.get("name") or "").lower()
+            gym_city_lower = (gym_context.get("city") or "").lower()
+            filtered: list[dict] = []
+            for ev in events:
+                loc = (ev.get("location") or "").lower()
+                if not loc or gym_name_lower in loc or gym_city_lower in loc:
+                    filtered.append(ev)
+                else:
+                    print(f"         [filter] dropped '{ev.get('event_name')}' — location '{ev.get('location')}' ≠ target gym")
+            if len(filtered) < len(events):
+                print(f"         [filter] {len(events) - len(filtered)} event(s) removed by location filter")
+            events = filtered
 
         for k in total_tokens:
             total_tokens[k] += summary[k]
