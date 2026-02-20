@@ -67,7 +67,7 @@ async def main(gym: str, output_path: Path | None) -> None:
         cur = conn.cursor()
         gym_id = ensure_gym(cur, gym)
         for ev in merged:
-            event_id = insert_event(cur, gym_id, ev, gym=gym)
+            event_id = insert_event(cur, gym_id, ev)
             # Each merged event carries the contributing raw events in "posts".
             # They came from DB, so each dict has an "id" field.
             raw_ids = [

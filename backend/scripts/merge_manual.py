@@ -102,7 +102,7 @@ def main(gym: str, output_path: Path | None, ops: list[dict]) -> None:
         delete_events(cur, list(found_ids))
         # Insert merged events and re-link their raw_events
         for ev in events:
-            event_id = insert_event(cur, gym_id, ev, gym=gym)
+            event_id = insert_event(cur, gym_id, ev)
             raw_ids = [
                 r["id"] for r in (ev.get("posts") or []) if r.get("id") is not None
             ]

@@ -44,7 +44,7 @@ python scripts/merge.py \
 python scripts/merge_manual.py \
 --gym bridgesrockgym \
 --from 2 6 \
---to 11
+--to 1
 ```
 
 ## Database connection

@@ -48,10 +48,8 @@ CREATE TABLE IF NOT EXISTS events (
     id           SERIAL PRIMARY KEY,
     gym_id       INTEGER REFERENCES gyms(id) ON DELETE SET NULL,
 
-    gym          TEXT,                -- gym slug (denormalised for easy filtering)
     event_name   TEXT NOT NULL,
     event_dates  DATE[],              -- union of all dates across merged raw_events
-    location     TEXT,
     discipline   TEXT CHECK (discipline IN ('bouldering', 'top-rope', 'lead', 'mixed')),
     summary      TEXT,
     merge_reason TEXT,                -- "reason" field from merge_executor
@@ -60,7 +58,6 @@ CREATE TABLE IF NOT EXISTS events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_events_gym_id    ON events (gym_id);
-CREATE INDEX IF NOT EXISTS idx_events_gym        ON events (gym);
 CREATE INDEX IF NOT EXISTS idx_events_discipline ON events (discipline);
 
 -- ── raw_events ────────────────────────────────────────────────────────────────
@@ -74,10 +71,8 @@ CREATE TABLE IF NOT EXISTS raw_events (
     post_id      INTEGER REFERENCES posts(id)   ON DELETE SET NULL,
     event_id     INTEGER REFERENCES events(id)  ON DELETE SET NULL,
 
-    gym          TEXT,      -- gym slug (denormalised for easy filtering)
     event_name   TEXT,
     event_dates  DATE[],
-    location     TEXT,
     discipline   TEXT,
     type         TEXT,
     summary      TEXT,
@@ -92,6 +87,5 @@ CREATE TABLE IF NOT EXISTS raw_events (
 );
 
 CREATE INDEX IF NOT EXISTS idx_raw_events_gym_id   ON raw_events (gym_id);
-CREATE INDEX IF NOT EXISTS idx_raw_events_gym      ON raw_events (gym);
 CREATE INDEX IF NOT EXISTS idx_raw_events_post_id  ON raw_events (post_id);
 CREATE INDEX IF NOT EXISTS idx_raw_events_event_id ON raw_events (event_id);

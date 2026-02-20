@@ -122,27 +122,25 @@ def upsert_posts(cur, gym_id: int, posts: list[dict]) -> dict[str, int]:
 # ── events ────────────────────────────────────────────────────────────────────
 
 
-def insert_event(cur, gym_id: int, event: dict, *, gym: str | None = None) -> int:
+def insert_event(cur, gym_id: int, event: dict) -> int:
     """
     Insert a merged event record; return its id.
 
     Expected keys (from *_events_merged.json top level):
-        event_name, event_date, location, discipline, summary, reason
+        event_name, event_date, discipline, summary, reason
     """
     cur.execute(
         """
         INSERT INTO events
-            (gym_id, gym, event_name, event_dates, location, discipline,
+            (gym_id, event_name, event_dates, discipline,
              summary, merge_reason)
-        VALUES (%s, %s, %s, %s::date[], %s, %s, %s, %s)
+        VALUES (%s, %s, %s::date[], %s, %s, %s)
         RETURNING id
         """,
         (
             gym_id,
-            gym,
             event["event_name"],
             _clean_dates(event.get("event_date") or event.get("event_dates")),
-            event.get("location"),
             event.get("discipline"),
             event.get("summary"),
             event.get("reason") or event.get("merge_reason"),
@@ -162,7 +160,7 @@ def get_events_by_ids(cur, ids: list[int]) -> list[dict]:
 
     cur.execute(
         """
-        SELECT id, event_name, event_dates, location, discipline,
+        SELECT id, event_name, event_dates, discipline,
                summary, merge_reason
         FROM   events
         WHERE  id = ANY(%s)
@@ -174,7 +172,6 @@ def get_events_by_ids(cur, ids: list[int]) -> list[dict]:
         "id",
         "event_name",
         "event_dates",
-        "location",
         "discipline",
         "summary",
         "merge_reason",
@@ -194,7 +191,7 @@ def get_events_by_ids(cur, ids: list[int]) -> list[dict]:
     # Embed linked raw_events as 'posts'
     cur.execute(
         """
-        SELECT id, event_id, event_name, event_dates, location, discipline,
+        SELECT id, event_id, event_name, event_dates, discipline,
                type, summary, reason, date_posted, platform, url, raw_media, post_id
         FROM   raw_events
         WHERE  event_id = ANY(%s)
@@ -207,7 +204,6 @@ def get_events_by_ids(cur, ids: list[int]) -> list[dict]:
         "event_id",
         "event_name",
         "event_dates",
-        "location",
         "discipline",
         "type",
         "summary",
@@ -257,32 +253,29 @@ def insert_raw_event(
     *,
     post_id: int | None = None,
     event_id: int | None = None,
-    gym: str | None = None,
 ) -> int:
     """
     Insert one LLM-extracted event record; return its id.
 
     Expected keys (from *_events.json or the posts[] array in *_events_merged.json):
-        event_name, event_date, location, discipline, type, summary, reason,
+        event_name, event_date, discipline, type, summary, reason,
         date_posted, platform, url, raw_media
     """
     cur.execute(
         """
         INSERT INTO raw_events
-            (gym_id, post_id, event_id, gym,
-             event_name, event_dates, location, discipline, type, summary, reason,
+            (gym_id, post_id, event_id,
+             event_name, event_dates, discipline, type, summary, reason,
              date_posted, platform, url, raw_media)
-        VALUES (%s, %s, %s, %s, %s, %s::date[], %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s::date[], %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
         (
             gym_id,
             post_id,
             event_id,
-            gym,
             raw.get("event_name"),
             _clean_dates(raw.get("event_date") or raw.get("event_dates")),
-            raw.get("location"),
             raw.get("discipline"),
             raw.get("type"),
             raw.get("summary"),
@@ -303,7 +296,6 @@ def bulk_insert_raw_events(
     *,
     url_to_post_id: dict[str, int] | None = None,
     event_id: int | None = None,
-    gym: str | None = None,
 ) -> list[int]:
     """
     Insert multiple raw_event records for one gym.
@@ -314,8 +306,6 @@ def bulk_insert_raw_events(
         Maps source URL → posts.id so post_id FK can be set.
     event_id : int, optional
         The merged events.id these all belong to (set during merge load).
-    gym : str, optional
-        Gym slug (denormalised) stored directly on each row for easy filtering.
     """
     if not raws:
         return []
@@ -327,10 +317,8 @@ def bulk_insert_raw_events(
             gym_id,
             url_map.get(r.get("url", "")),
             event_id,
-            gym,
             r.get("event_name"),
             _clean_dates(r.get("event_date") or r.get("event_dates")),
-            r.get("location"),
             r.get("discipline"),
             r.get("type"),
             r.get("summary"),
@@ -350,10 +338,10 @@ def bulk_insert_raw_events(
         cur.execute(
             """
             INSERT INTO raw_events
-                (gym_id, post_id, event_id, gym,
-                 event_name, event_dates, location, discipline, type, summary, reason,
+                (gym_id, post_id, event_id,
+                 event_name, event_dates, discipline, type, summary, reason,
                  date_posted, platform, url, raw_media)
-            VALUES (%s, %s, %s, %s, %s, %s::date[], %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s::date[], %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
             row,
@@ -420,7 +408,7 @@ def get_raw_events_by_ids(cur, ids: list[int]) -> list[dict]:
         return []
     cur.execute(
         """
-        SELECT id, event_name, event_dates, location, discipline,
+        SELECT id, event_name, event_dates, discipline,
                type, summary, reason, date_posted, platform, url, raw_media,
                post_id
         FROM   raw_events
@@ -433,7 +421,6 @@ def get_raw_events_by_ids(cur, ids: list[int]) -> list[dict]:
         "id",
         "event_name",
         "event_dates",
-        "location",
         "discipline",
         "type",
         "summary",
@@ -468,7 +455,7 @@ def get_unmerged_raw_events(cur, gym: str) -> list[dict]:
     """
     cur.execute(
         """
-        SELECT re.id, re.event_name, re.event_dates, re.location, re.discipline,
+        SELECT re.id, re.event_name, re.event_dates, re.discipline,
                re.type, re.summary, re.reason, re.date_posted, re.platform, re.url, re.raw_media,
                re.post_id
         FROM   raw_events re
@@ -483,7 +470,6 @@ def get_unmerged_raw_events(cur, gym: str) -> list[dict]:
         "id",
         "event_name",
         "event_dates",
-        "location",
         "discipline",
         "type",
         "summary",
