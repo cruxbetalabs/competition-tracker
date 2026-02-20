@@ -3,63 +3,118 @@
 CLI entry point for the Instagram profile scraper.
 
 All scraping logic lives in instagram_crawler.InstagramCrawler.
-Configure the run by editing the constants below, then run:
+Posts are scraped and upserted directly into PostgreSQL.
 
-  python scripts/instagram.py
+Usage:
+    python scripts/extract_instagram.py --gym benchmarkclimbing \\
+        --since 2025-05-01 --until 2026-02-16
+    python scripts/extract_instagram.py --gym benchmarkclimbing \\
+        --since 2025-05-01 --until 2026-02-16 --headless --force-login
 """
 
+import argparse
 import asyncio
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
 from service.instagram_crawler import InstagramCrawler
 
-# ── Configuration ─────────────────────────────────────────────────────────────
-PROFILE = "touchstoneclimbing"
-SINCE = datetime(2026, 1, 1, tzinfo=timezone.utc)
-UNTIL = datetime(2026, 2, 16, tzinfo=timezone.utc)
-HEADLESS = False  # set False to watch the browser
-FORCE_LOGIN = False  # set True to discard session.json and re-login
-
-data_dir = Path(__file__).parent.parent / "data"
 ENV_FILE = Path(__file__).parent.parent / ".env"
-# ─────────────────────────────────────────────────────────────────────────────
 
 
-async def main() -> None:
-    if SINCE > UNTIL:
+async def main(
+    gym: str,
+    since: datetime,
+    until: datetime,
+    headless: bool,
+    force_login: bool,
+) -> None:
+    if since > until:
         raise ValueError(
-            f"SINCE ({SINCE.date()}) must not be later than UNTIL ({UNTIL.date()})"
+            f"--since ({since.date()}) must not be later than --until ({until.date()})"
         )
 
     crawler = InstagramCrawler(
         env_file=ENV_FILE,
         session_file=Path(__file__).parent / "session.json",
-        headless=HEADLESS,
+        headless=headless,
     )
 
     posts = await crawler.scrape(
-        PROFILE,
-        SINCE,
-        UNTIL,
-        force_relogin=FORCE_LOGIN,  # whether to refetch the credential or not
-        # debug=True,
+        gym,
+        since,
+        until,
+        force_relogin=force_login,
     )
 
-    print(f"\n── {len(posts)} posts collected  ({SINCE.date()} → {UNTIL.date()}) ──\n")
+    print(f"\n── {len(posts)} posts collected  ({since.date()} → {until.date()}) ──\n")
     for p in posts:
         print(f"  {p['timestamp'][:19]}  {p['url']}")
         if p["caption"]:
             snippet = p["caption"][:120].replace("\n", " ").strip()
             print(f"    ↳ {snippet}{'…' if len(p['caption']) > 120 else ''}")
 
-    # ── Export raw posts ──────────────────────────────────────────────────────
-    data_dir.mkdir(exist_ok=True)
-    posts_file = data_dir / f"{PROFILE}_posts.json"
-    posts_file.write_text(json.dumps(posts, indent=2, ensure_ascii=False))
-    print(f"\n[export] Saved {len(posts)} raw posts → {posts_file}")
+    # ── Export to DB ──────────────────────────────────────────────────────────
+    from service.db import connect, ensure_gym, upsert_posts
+
+    for p in posts:
+        p.setdefault("platform", "instagram")
+
+    conn = connect()
+    try:
+        cur = conn.cursor()
+        gym_id = ensure_gym(cur, gym)
+        url_map = upsert_posts(cur, gym_id, posts)
+        conn.commit()
+        print(
+            f"[db] Upserted {len(url_map)} post(s) into PostgreSQL  (gym_id={gym_id})"
+        )
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(
+        description="Scrape an Instagram profile and store raw posts in PostgreSQL."
+    )
+    parser.add_argument(
+        "--gym",
+        required=True,
+        help="Instagram profile handle / gym slug (e.g. benchmarkclimbing)",
+    )
+    parser.add_argument(
+        "--since",
+        required=True,
+        type=lambda s: datetime.fromisoformat(s).replace(tzinfo=timezone.utc),
+        help="Start date (inclusive), ISO format: 2025-05-01",
+    )
+    parser.add_argument(
+        "--until",
+        required=True,
+        type=lambda s: datetime.fromisoformat(s).replace(tzinfo=timezone.utc),
+        help="End date (inclusive), ISO format: 2026-02-16",
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="Run the browser in headless mode (default: visible).",
+    )
+    parser.add_argument(
+        "--force-login",
+        action="store_true",
+        help="Discard saved session.json and re-authenticate.",
+    )
+    args = parser.parse_args()
+
+    asyncio.run(
+        main(
+            gym=args.gym,
+            since=args.since,
+            until=args.until,
+            headless=args.headless,
+            force_login=args.force_login,
+        )
+    )

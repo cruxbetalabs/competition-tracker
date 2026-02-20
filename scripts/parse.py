@@ -1,74 +1,102 @@
 #!/usr/bin/env python3
 """
-CLI for running LLM extraction + merge over a saved JSON posts file.
+CLI for running LLM extraction over posts stored in PostgreSQL.
 
-Each item in the input JSON array must follow this schema:
-    {
-        "url":        "<source URL>",
-        "platform":   "<'instagram' | 'website' | 'facebook' | 'others'>",
-        "caption":    "<text content>",
-        "media_urls": ["<image or video URLs>"],
-        "timestamp":  "<ISO 8601 datetime | null>"
-    }
+Reads all unprocessed posts (those with no linked raw_events yet) for a given
+gym from the database, runs the LLM extraction pipeline, and writes the
+results back to PostgreSQL.
 
 Usage:
-    python scripts/parse.py data/mosaicboulders_posts.json
-    python scripts/parse.py data/mosaicboulders_posts.json --output data/mosaicboulders_events.json
+    python scripts/parse.py --gym mosaicboulders
+    python scripts/parse.py --gym mosaicboulders --output data/mosaicboulders_events.json
+
+The --output flag is optional and saves a debug JSON copy; the DB is always the
+primary destination.
+
+To merge extracted events, run:
+    python scripts/merge.py --gym mosaicboulders
 """
 
 import argparse
 import asyncio
-import json
 from pathlib import Path
 
+from service.db import (
+    bulk_insert_raw_events,
+    connect,
+    ensure_gym,
+    get_unprocessed_posts,
+)
 from service.event_extractor import EventExtractor
 
 _ENV_FILE = Path(__file__).parent.parent / ".env"
 
 
-async def main(input_path: Path, output_path: Path, merge: bool = True) -> None:
-    posts = json.loads(input_path.read_text(encoding="utf-8"))
-    print(f"[parse] Loaded {len(posts)} post(s) from {input_path}")
+async def main(gym: str, output_path: Path | None) -> None:
+    # ── Load unprocessed posts from DB ────────────────────────────────────────
+    conn = connect()
+    try:
+        cur = conn.cursor()
+        gym_id = ensure_gym(cur, gym)
+        posts = get_unprocessed_posts(cur, gym)
+        conn.commit()
+    finally:
+        conn.close()
 
+    if not posts:
+        print(f"[parse] No unprocessed posts found for '{gym}' — nothing to do.")
+        return
+
+    print(f"[parse] Found {len(posts)} unprocessed post(s) for '{gym}'")
+
+    # ── LLM extraction ────────────────────────────────────────────────────────
     extractor = EventExtractor(env_file=_ENV_FILE)
+    events, token_summary = await extractor.extract_all_posts(posts)
+    extractor.get_stat(token_summary)
 
-    events, extract_tokens = await extractor.extract_all_posts(posts)
+    # ── Optional debug JSON export ────────────────────────────────────────────
+    if output_path:
+        extractor.save_events(events, output_path)
 
-    if merge:
-        merged, merge_tokens = await extractor.merge_events(events)
-        combined_tokens = {
-            k: extract_tokens[k] + merge_tokens[k] for k in extract_tokens
-        }
-    else:
-        if not merge:
-            print("\n[merge] Skipping merge")
-        merged = events
-        combined_tokens = extract_tokens
+    # ── Export to DB (always) ─────────────────────────────────────────────────
+    # Build url → post_id map from the posts we just loaded (they carry their DB id).
+    url_map: dict[str, int] = {
+        p["url"]: p["id"] for p in posts if p.get("url") and p.get("id")
+    }
 
-    extractor.save_events(merged, output_path)
-    extractor.get_stat(combined_tokens)
+    conn = connect()
+    try:
+        cur = conn.cursor()
+        gym_id = ensure_gym(cur, gym)
+        ids = bulk_insert_raw_events(
+            cur, gym_id, events, url_to_post_id=url_map, gym=gym
+        )
+        conn.commit()
+        print(
+            f"[db] Inserted {len(ids)} raw_event(s) into PostgreSQL  (gym_id={gym_id})"
+        )
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Extract and merge competition events from a JSON posts file."
+        description="Extract competition events from DB posts and store raw_events in PostgreSQL."
     )
-    parser.add_argument("input", type=Path, help="Path to the JSON posts file")
+    parser.add_argument(
+        "--gym",
+        required=True,
+        help="Gym slug to process (e.g. mosaicboulders)",
+    )
     parser.add_argument(
         "--output",
         type=Path,
         default=None,
-        help="Output path for events JSON (default: <input_stem>_events.json)",
-    )
-    parser.add_argument(
-        "--merge",
-        action="store_true",
-        default=False,
-        help="Skip the merge step and output raw extracted events.",
+        help="Optional path to save a debug JSON copy of the extracted events.",
     )
     args = parser.parse_args()
 
-    stem = args.input.stem.removesuffix("_posts")
-    output_path = args.output or args.input.parent / f"{stem}_events.json"
-
-    asyncio.run(main(args.input, output_path, merge=args.merge))
+    asyncio.run(main(args.gym, args.output))
