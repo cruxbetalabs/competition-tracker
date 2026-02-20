@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:18.1
+    container_name: competition-tracker-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: competition_tracker
+      POSTGRES_USER: crux
+      POSTGRES_PASSWORD: crux_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crux -d competition_tracker"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pg_data:

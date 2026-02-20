@@ -13,7 +13,8 @@ from pathlib import Path
 from dotenv import dotenv_values
 from openai import AsyncOpenAI
 
-from .prompts import EXTRACTION_PROMPT, MERGE_PROMPT
+from .merge_executor import apply_commands
+from .prompts import EXTRACTION_PROMPT, MERGE_COMMANDS_PROMPT
 
 
 class EventExtractor:
@@ -108,27 +109,28 @@ class EventExtractor:
         Supports any platform — expected keys:
             url, platform, caption, media_urls, timestamp (ISO 8601 | None)
         """
-        # Build a compact text representation of the post
-        lines = []
-        if post.get("caption"):
-            lines.append(post["caption"])
-        if post.get("media_urls"):
-            lines.append("\nMedia:")
-            for url in post["media_urls"]:
-                lines.append(f"  {url}")
-
-        content = "\n".join(lines).strip() or "(no caption)"
+        # Build a compact text representation of the post.
+        # media_urls are intentionally excluded from the LLM prompt — they are
+        # copied verbatim into each extracted event after the LLM call below.
+        content = (post.get("caption") or "").strip() or "(no caption)"
 
         # Derive a calendar date from the ISO timestamp for the model's context
         ts = post.get("timestamp") or ""
         date_posted = ts[:10] or None
 
-        return await self.extract(
+        events, token_summary = await self.extract(
             content=content,
             source_url=post.get("url", ""),
             platform=post.get("platform", "others"),
             date_posted=date_posted,
         )
+
+        # Copy the original media URLs directly — no LLM involvement.
+        raw_media = post.get("media_urls") or []
+        for event in events:
+            event["raw_media"] = raw_media
+
+        return events, token_summary
 
     async def extract_all_posts(self, posts: list[dict]) -> tuple[list[dict], dict]:
         """
@@ -161,26 +163,37 @@ class EventExtractor:
         """
         Group a flat list of extracted event records by real-world event identity.
 
-        Sends all records in a single LLM call using MERGE_PROMPT and returns
-        ``(merged_events, token_summary)`` where merged_events is a list of
-        consolidated event objects each containing a ``posts`` array of the
-        original source records that were grouped together.
+        Step 1 — LLM: produce MERGE commands (indices only, no field rewrites).
+        Step 2 — Executor: apply commands deterministically using fixed rules.
+
+        Returns ``(merged_events, token_summary)``.
         """
+        empty_tokens = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+
         if not events:
-            empty_tokens = {
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "total_tokens": 0,
-            }
             return [], empty_tokens
 
-        print(f"\n[merge] Merging {len(events)} extracted record(s) …")
+        if len(events) > 30:
+            print(
+                f"[merge] Skipping — {len(events)} record(s) exceeds the 30-record limit. "
+                f"No events will be written. Split the date range or raise the limit."
+            )
+            return [], empty_tokens
+
+        print(f"\n[merge] Requesting merge commands for {len(events)} record(s) …")
+
+        # ── Step 1: ask LLM for MERGE commands ───────────────────────────────
+        # Strip fields that are irrelevant noise for the LLM (post_id is always
+        # NULL at this stage; event_id is always NULL by definition here).
+        # The DB `id` field is kept as the stable identifier the LLM must use.
+        _STRIP_KEYS = {"post_id", "event_id"}
+        indexed = [{k: v for k, v in e.items() if k not in _STRIP_KEYS} for e in events]
 
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": MERGE_PROMPT},
-                {"role": "user", "content": json.dumps(events, ensure_ascii=False)},
+                {"role": "system", "content": MERGE_COMMANDS_PROMPT},
+                {"role": "user", "content": json.dumps(indexed, ensure_ascii=False)},
             ],
             temperature=0,
         )
@@ -193,14 +206,17 @@ class EventExtractor:
         }
 
         raw = response.choices[0].message.content.strip()
-        merged = json.loads(raw)
+        commands: list[dict] = json.loads(raw)
 
-        if not merged:
-            print(
-                f"[merge] LLM signalled no merging needed — "
-                f"keeping original {len(events)} record(s) as-is."
-            )
-            return events, token_summary
+        if commands:
+            print(f"[merge] {len(commands)} MERGE command(s) received:")
+            for cmd in commands:
+                print(f"  ids={cmd.get('ids')}  reason={cmd.get('reason')!r}")
+        else:
+            print("[merge] No merges needed — all records are distinct.")
+
+        # ── Step 2: apply commands deterministically ──────────────────────────
+        merged = apply_commands(events, commands)
 
         print(f"[merge] {len(events)} record(s) → {len(merged)} event(s)")
         return merged, token_summary

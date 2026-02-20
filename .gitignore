@@ -1,2 +1,4 @@
 .env
 .venv/
+PR-DESCRIPTION.md
+.DS_Store
