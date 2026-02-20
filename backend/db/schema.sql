@@ -16,7 +16,6 @@ CREATE TABLE IF NOT EXISTS gyms (
     slug             TEXT UNIQUE NOT NULL,   -- e.g. "benchmarkclimbing"
     address          TEXT,
     city             TEXT,
-    state            TEXT,
     organization     TEXT,
     google_plus_code TEXT,
     created_at       TIMESTAMPTZ DEFAULT NOW()

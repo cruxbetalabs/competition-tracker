@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:18.1
-    container_name: competition-tracker-db
+    container_name: ${COMPOSE_CONTAINER_NAME:-competition-tracker-db}
     restart: unless-stopped
     environment:
       POSTGRES_DB: competition_tracker
