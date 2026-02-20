@@ -49,7 +49,7 @@ def ensure_gym(
     city: str | None = None,
     state: str | None = None,
     organization: str | None = None,
-    google_plus_code: str | None = None,
+    google_plus_code: str | None = None,  # https://maps.google.com/pluscodes/
 ) -> int:
     """Insert gym if absent; return its id either way.
 
