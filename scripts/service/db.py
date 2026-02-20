@@ -41,16 +41,34 @@ def _clean_dates(dates: list | None) -> list[str] | None:
 # ── gyms ──────────────────────────────────────────────────────────────────────
 
 
-def ensure_gym(cur, slug: str) -> int:
-    """Insert gym if absent; return its id either way."""
+def ensure_gym(
+    cur,
+    slug: str,
+    *,
+    address: str | None = None,
+    city: str | None = None,
+    state: str | None = None,
+    organization: str | None = None,
+    google_plus_code: str | None = None,
+) -> int:
+    """Insert gym if absent; return its id either way.
+
+    Optional keyword arguments populate the corresponding columns when
+    provided; existing rows are updated if any value differs.
+    """
     cur.execute(
         """
-        INSERT INTO gyms (slug)
-        VALUES (%s)
-        ON CONFLICT (slug) DO UPDATE SET slug = EXCLUDED.slug
+        INSERT INTO gyms (slug, address, city, state, organization, google_plus_code)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (slug) DO UPDATE
+            SET address          = COALESCE(EXCLUDED.address,          gyms.address),
+                city             = COALESCE(EXCLUDED.city,             gyms.city),
+                state            = COALESCE(EXCLUDED.state,            gyms.state),
+                organization     = COALESCE(EXCLUDED.organization,     gyms.organization),
+                google_plus_code = COALESCE(EXCLUDED.google_plus_code, gyms.google_plus_code)
         RETURNING id
         """,
-        (slug,),
+        (slug, address, city, state, organization, google_plus_code),
     )
     return cur.fetchone()[0]
 
