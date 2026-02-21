@@ -35,7 +35,8 @@ EXTRACTION_PROMPT = textwrap.dedent(
     extract ONLY competition-level climbing events and return them as a JSON array.
 
     SCOPE — include any competition-relevant climbing events, such as:
-    - Competitions in any discipline: Bouldering, Top-rope, Lead, Speed, or Mixed
+    - Competitions in any discipline: Bouldering, Top-rope, Lead, Speed, or Mixed. 
+      - Make sure we don't count a competition that has different levels to be mixed.
     - Onsight / redpoint series, league seasons, or recurring scored events
     - Qualifier events and finals rounds tied to a competition
     - Competition-focused training clinics, mock comps, or coaching sessions
@@ -64,6 +65,17 @@ EXTRACTION_PROMPT = textwrap.dedent(
       (e.g. results, podium, winner announcement, highlight reel, photo dump).
     Use date_posted and event_date together to determine whether the event is upcoming or past.
     When event_date is unknown, infer from context (e.g. past-tense language → recap).
+
+    Author context:
+    - The header may include an "Author" field: the Instagram handle or website domain that
+      published the post. Use it as a host-identity signal:
+      • If the Author matches (or strongly resembles) the gym or organisation running the event,
+        treat all extracted events as being hosted by that entity.
+      • If the Author is a parent organisation handle (e.g. @touchstoneclimbing), individual
+        events may be spread across member gyms — rely on location fields and any TARGET GYM
+        FILTER appended below to decide which events to keep.
+      • Do NOT fabricate an event location solely from the Author; location must still be
+        grounded in the post content.
 
     General rules:
     - {_JSON_OUTPUT_RULE}

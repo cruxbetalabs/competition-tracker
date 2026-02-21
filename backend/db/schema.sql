@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS posts (
 
     url         TEXT UNIQUE NOT NULL,  -- canonical source URL
     platform    TEXT,                  -- 'instagram' | 'website' | 'others'
+    author      TEXT,                  -- instagram handle or website domain
     caption     TEXT,
     media_urls  TEXT[],
     timestamp   TIMESTAMPTZ,

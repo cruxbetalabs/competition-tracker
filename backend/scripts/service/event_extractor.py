@@ -46,6 +46,7 @@ class EventExtractor:
         source_url: str,
         platform: str = "website",
         date_posted: str | None = None,
+        author: str | None = None,
         gym_context: dict | None = None,
     ) -> tuple[list[dict], dict]:
         """
@@ -63,6 +64,11 @@ class EventExtractor:
         date_posted : str | None
             ISO 8601 calendar date of the post, forwarded to the model for
             context.
+        author : str | None
+            The account that published the post — Instagram handle for
+            instagram posts, domain for website posts. Helps the LLM attribute
+            events to the correct gym, especially when parsing org-level posts
+            that may reference multiple locations.
         gym_context : dict | None
             Optional dict with ``name`` and ``city`` keys. When provided
             (e.g. when processing organisation-level posts), the LLM is
@@ -73,6 +79,8 @@ class EventExtractor:
             f"Source URL: {source_url}",
             f"Platform: {platform}",
         ]
+        if author:
+            header_parts.append(f"Author: {author}")
         if date_posted:
             header_parts.append(f"Date posted: {date_posted}")
 
@@ -136,6 +144,7 @@ class EventExtractor:
             source_url=post.get("url", ""),
             platform=post.get("platform", "others"),
             date_posted=date_posted,
+            author=post.get("author"),
             gym_context=gym_context,
         )
 

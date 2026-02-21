@@ -106,9 +106,15 @@ async def main(gym: str, output_path: Path | None, include_org_posts: bool) -> N
     finally:
         conn.close()
 
-    # Tag org posts so the extraction loop can apply the gym-context filter
+    # Tag org posts so the extraction loop can apply the gym-context filter.
+    # Also tag gym posts that were scraped from an org account (organization_id
+    # is set) — those need the same filter even though they live in the gym's
+    # own post list (e.g. --profile touchstoneclimbing --gym hyperion-climbing).
     for p in org_posts:
         p["_is_org_post"] = True
+    for p in posts:
+        if p.get("organization_id") is not None:
+            p["_is_org_post"] = True
 
     # Deduplicate by post id (gym posts take precedence, org posts fill in the rest)
     seen_ids: set[int] = {p["id"] for p in posts}

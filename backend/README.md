@@ -16,8 +16,8 @@ playwright install firefox
 ```shell
 # for instagram post extraction
 python scripts/extract_instagram.py \
---profile mosaicboulders \
---gym mosaic-boulders \
+--profile pacificpipe \
+--gym pacific-pipe \
 --since 2025-10-01
 # --until 2026-02-19
 
@@ -31,7 +31,7 @@ python scripts/extract_website.py \
 
 ```shell
 python scripts/parse.py \
---gym hyperion-climbing \
+--gym pacific-pipe \
 --include-org-posts # (also parse unprocessed posts from the org account)
 ```
 
@@ -39,7 +39,7 @@ python scripts/parse.py \
 
 ```shell
 python scripts/merge.py \
---gym hyperion-climbing
+--gym pacific-pipe
 ```
 
 4. **Manual merge** `events` entries
@@ -47,8 +47,8 @@ python scripts/merge.py \
 ```shell
 python scripts/merge_manual.py \
 --gym hyperion-climbing \
---from 34 \
---to 33
+--from 74 75 \
+--to 73
 
 # to-do: we may need to support cross-gym merge in the future
 ```
@@ -72,4 +72,8 @@ docker compose exec db psql -U crux -d competition_tracker -c "\dt"
 
 ## To-do
 
+- [ ] An eval playground to test:
+    - [ ] mosaic: ig
+    - [ ] bridges: ig + website
+    - [ ] touchstone gyms: gyms's ig + org's ig
 - [ ] Set up an additional pipe to be able to infer whther this event is professional or non-professional
