@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { router, publicProcedure } from "../server";
 import { db } from "@/lib/db";
 import { events, gyms, rawEvents } from "@/lib/db/schema";
@@ -80,7 +80,7 @@ export const eventsRouter = router({
                 })
                 .from(rawEvents)
                 .where(eq(rawEvents.eventId, input.id))
-                .orderBy(rawEvents.datePosted, rawEvents.id);
+                .orderBy(desc(rawEvents.datePosted), desc(rawEvents.id));
 
             return { ...event, sources };
         }),

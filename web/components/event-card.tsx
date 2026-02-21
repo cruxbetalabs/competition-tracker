@@ -55,9 +55,9 @@ export function EventCard({ event, isSelected, onClick }: EventCardProps) {
             onClick={onClick}
             className={cn(
                 "w-full text-left flex gap-4 rounded-xl border px-4 py-4 transition-all duration-150",
-                "hover:border-neutral-300 hover:shadow-sm",
+                "hover:border-neutral-300 hover:shadow-md",
                 isSelected
-                    ? "border-neutral-900 bg-neutral-50 shadow-sm"
+                    ? "border-neutral-900 bg-neutral-50 shadow-md"
                     : "border-neutral-200 bg-white"
             )}
         >
