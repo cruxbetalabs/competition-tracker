@@ -164,37 +164,45 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                             {event.sources.map((src) => (
                                                 <li
                                                     key={src.id}
-                                                    className="flex items-center justify-between gap-3 rounded-md border hover:border-gray-300 border-gray-100 bg-white px-3 py-2"
+                                                    className="flex flex-col gap-1.5 rounded-md border hover:border-gray-300 border-gray-100 bg-white px-3 py-2"
                                                 >
-                                                    <div className="flex items-center gap-2 min-w-0 text-xs">
-                                                        <span className="text-neutral-700">
-                                                            {formatDate(src.datePosted)}
-                                                        </span>
-                                                        <span className="text-neutral-400 capitalize">
-                                                            {PLATFORM_LABELS[src.platform ?? ""] ??
-                                                                src.platform ??
-                                                                "Unknown"}
-                                                        </span>
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex items-center gap-2 min-w-0 text-xs">
+                                                            <span className="text-neutral-700">
+                                                                {formatDate(src.datePosted)}
+                                                            </span>
+                                                            <span className="text-neutral-400 capitalize">
+                                                                {PLATFORM_LABELS[src.platform ?? ""] ??
+                                                                    src.platform ??
+                                                                    "Unknown"}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            {src.type && (
+                                                                <Badge variant="secondary" className="capitalize">
+                                                                    {src.type}
+                                                                </Badge>
+                                                            )}
+                                                            {src.url && (
+                                                                <a
+                                                                    href={src.url}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-neutral-400 hover:text-neutral-700 transition-colors"
+                                                                    aria-label="Open source post"
+                                                                >
+                                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                                </a>
+                                                            )}
+                                                        </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-2 shrink-0">
-                                                        {src.type && (
-                                                            <Badge variant="secondary" className="capitalize">
-                                                                {src.type}
-                                                            </Badge>
-                                                        )}
-                                                        {src.url && (
-                                                            <a
-                                                                href={src.url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-neutral-400 hover:text-neutral-700 transition-colors"
-                                                                aria-label="Open source post"
-                                                            >
-                                                                <ExternalLink className="w-3.5 h-3.5" />
-                                                            </a>
-                                                        )}
-                                                    </div>
+                                                    {src.summary && (
+                                                        <p className="text-xs text-neutral-500 leading-relaxed line-clamp-2">
+                                                            {src.summary}
+                                                        </p>
+                                                    )}
                                                 </li>
                                             ))}
                                         </ul>
