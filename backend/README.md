@@ -53,6 +53,20 @@ python scripts/merge_manual.py \
 # to-do: we may need to support cross-gym merge in the future
 ```
 
+5. **Track**
+
+```shell
+# for instagram post extraction
+python scripts/extract_instagram.py \
+--profile mosaicboulders \
+--gym mosaic-boulders \
+--since 2026-02-20 # get the date of lateset post we fetched
+
+python scripts/parse.py \
+--gym mosaic-boulders \
+--include-org-posts
+```
+
 ## Database connection
 
 ```shell
@@ -72,6 +86,8 @@ docker compose exec db psql -U crux -d competition_tracker -c "\dt"
 
 ## To-do
 
+- [ ] write a script that migration the gyms's source + orgianzations source data to database?
+    - [ ] create a `source` database
 - [ ] Build an unified `extract.py` that automatically extract posts given a gym's slug
 - [ ] An eval playground to test:
     - [ ] mosaic: ig
