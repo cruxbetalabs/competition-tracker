@@ -72,6 +72,7 @@ docker compose exec db psql -U crux -d competition_tracker -c "\dt"
 
 ## To-do
 
+- [ ] Build an unified `extract.py` that automatically extract posts given a gym's slug
 - [ ] An eval playground to test:
     - [ ] mosaic: ig
     - [ ] bridges: ig + website
