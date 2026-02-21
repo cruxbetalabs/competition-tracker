@@ -166,11 +166,11 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                                     key={src.id}
                                                     className="flex items-center justify-between gap-3 rounded-md border hover:border-gray-300 border-gray-100 bg-white px-3 py-2"
                                                 >
-                                                    <div className="flex items-center gap-2 min-w-0">
-                                                        <span className="text-sm text-neutral-700">
+                                                    <div className="flex items-center gap-2 min-w-0 text-xs">
+                                                        <span className="text-neutral-700">
                                                             {formatDate(src.datePosted)}
                                                         </span>
-                                                        <span className="text-sm text-neutral-400 capitalize">
+                                                        <span className="text-neutral-400 capitalize">
                                                             {PLATFORM_LABELS[src.platform ?? ""] ??
                                                                 src.platform ??
                                                                 "Unknown"}
