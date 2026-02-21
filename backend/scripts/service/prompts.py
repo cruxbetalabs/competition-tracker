@@ -23,7 +23,7 @@ _EXTRACTION_SCHEMA = f"""\
         "date_posted": "<ISO 8601 date the source was posted; null if unknown>",
         "platform":    "<'instagram' | 'website' | 'others'>",
         "url":         "<URL of the source post or page>",
-        "reason":      "<1-3 sentences explaining why you chose each field value: the event name, date(s), location, discipline, and type>"
+        "reason":      "<A few entences explaining why you chose each field value: the event name, event date(s), location, discipline, and type>"
     }}"""
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -97,6 +97,11 @@ EXTRACTION_PROMPT = textwrap.dedent(
       dates, sign-up deadlines, and waitlist dates are NOT event dates — do not use them for
       event_date. If only a registration date is mentioned and no competition date can be inferred,
       set event_date to null.
+    - Date attribution: a post may mention dates for multiple distinct events or rounds (e.g. a
+      series listing "Event 2: March 20" and "Event 3: May 19"). Only include dates that directly
+      belong to the specific event record you are extracting. Do NOT carry over dates from sibling
+      events or future instalments mentioned in the same post. Each extracted record
+      must have only its own event's date(s).
 
     Summary rules: keep summaries between 2–4 sentences. Tailor content by type:
     - announcement: Must include the competition discipline (bouldering/top-rope/lead/speed/mixed),
@@ -186,9 +191,11 @@ MERGE_COMMANDS_PROMPT = textwrap.dedent(
       {
         "command": "MERGE",
         "ids": [<int>, ...],
-        "canonical_name": "<proper event name, or null to auto-pick>",
-        "criterion": "<exactly one of: A | B | C — the criterion from Step 1 that triggered this merge>",
-        "reason": "<1-2 sentences citing the specific matching names, dates, or summary text that satisfied the criterion>"
+        "canonical_name": "<most specific proper event name among the grouped records, or null to auto-pick>",
+        "canonical_dates": ["<ISO 8601 date(s) the event takes place; one entry per day>"] or null to auto-pick,
+        "canonical_discipline": "<'bouldering' | 'top-rope' | 'lead' | 'mixed' | 'speed'> or null to auto-pick",
+        "canonical_summary": "<2-4 sentence summary combining the most informative details from all merged records, or null to auto-pick>",
+        "reason": "<1-2 sentences citing the specific matching names, dates, or summary text that triggered this merge>"
       }
     ]
     - Output ONLY a valid JSON array. No markdown, no explanation, no code fences.

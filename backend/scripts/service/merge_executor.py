@@ -253,8 +253,16 @@ def apply_commands(events: list[dict], commands: list[dict]) -> list[dict]:
         records = [id_map[i] for i in ids]
         reason = cmd.get("reason")
         canonical_name = cmd.get("canonical_name") or None
+        canonical_dates = cmd.get("canonical_dates") or None
+        canonical_discipline = cmd.get("canonical_discipline") or None
+        canonical_summary = cmd.get("canonical_summary") or None
         result = _to_output(
-            records=records, reason=reason, canonical_name=canonical_name
+            records=records,
+            reason=reason,
+            canonical_name=canonical_name,
+            canonical_dates=canonical_dates,
+            canonical_discipline=canonical_discipline,
+            canonical_summary=canonical_summary,
         )
         output.append(result)
         print(
@@ -274,18 +282,50 @@ def _to_output(
     records: list[dict],
     reason: str | None,
     canonical_name: str | None = None,
+    canonical_dates: list | None = None,
+    canonical_discipline: str | None = None,
+    canonical_summary: str | None = None,
 ) -> dict:
-    """Combine *records* into a single output event dict."""
+    """Combine *records* into a single output event dict.
+
+    When a canonical_* value is provided (non-None) it is used directly.
+    Otherwise the field is resolved deterministically and a note is appended
+    to *reason* listing which fields were auto-picked.
+    """
     posts = []
     for r in records:
         posts.extend(_extract_posts(r))
 
+    auto_picked: list[str] = []
+
+    if canonical_dates is not None:
+        event_date = canonical_dates
+    else:
+        event_date = _pick_event_date(records)
+        auto_picked.append("canonical_dates")
+
+    if canonical_discipline is not None:
+        discipline = canonical_discipline
+    else:
+        discipline = _pick_first_non_null(records, "discipline")
+        auto_picked.append("canonical_discipline")
+
+    if canonical_summary is not None:
+        summary = canonical_summary
+    else:
+        summary = _pick_summary(records)
+        auto_picked.append("canonical_summary")
+
+    if auto_picked:
+        note = f"Auto-picked by executor (LLM left null): {', '.join(auto_picked)}."
+        reason = f"{reason} {note}" if reason else note
+
     return {
         "event_name": _pick_event_name(records, canonical_name=canonical_name),
-        "event_date": _pick_event_date(records),
+        "event_date": event_date,
         "location": _pick_first_non_null(records, "location"),
-        "discipline": _pick_first_non_null(records, "discipline"),
-        "summary": _pick_summary(records),
+        "discipline": discipline,
+        "summary": summary,
         "reason": reason,
         "posts": posts,
     }

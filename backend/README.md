@@ -72,6 +72,8 @@ docker compose exec db psql -U crux -d competition_tracker -c "\dt"
 
 ## To-do
 
+- [ ] write a script that migration the gyms's source + orgianzations source data to database?
+    - [ ] create a `source` database
 - [ ] Build an unified `extract.py` that automatically extract posts given a gym's slug
 - [ ] An eval playground to test:
     - [ ] mosaic: ig
