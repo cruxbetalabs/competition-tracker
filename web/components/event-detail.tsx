@@ -13,6 +13,7 @@ import { cn, gymAvatarColor, gymInitials } from "@/lib/utils";
 import { trpc } from "@/lib/trpc/client";
 import { ExternalLink, MapPin, CalendarDays, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import ReactMarkdown from "react-markdown";
 
 const PLATFORM_LABELS: Record<string, string> = {
     instagram: "Instagram",
@@ -145,9 +146,9 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                         <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
                                             Summary
                                         </span>
-                                        <p className="mt-3 text-sm text-neutral-700 leading-relaxed">
-                                            {event.summary}
-                                        </p>
+                                        <div className="mt-3 text-sm text-neutral-700 leading-relaxed prose prose-sm max-w-none">
+                                            <ReactMarkdown>{event.summary}</ReactMarkdown>
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -199,9 +200,9 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                                     </div>
 
                                                     {src.summary && (
-                                                        <p className="text-xs text-neutral-500 leading-relaxed line-clamp-2">
-                                                            {src.summary}
-                                                        </p>
+                                                        <div className="text-xs text-neutral-500 leading-relaxed line-clamp-2 prose prose-xs max-w-none">
+                                                            <ReactMarkdown>{src.summary}</ReactMarkdown>
+                                                        </div>
                                                     )}
                                                 </li>
                                             ))}

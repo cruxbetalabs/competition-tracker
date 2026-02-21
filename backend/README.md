@@ -55,7 +55,15 @@ python scripts/merge.py \
 # to-do: we may need to support cross-gym merge in the future
 ```
 
-5. **Track** workflow
+5. **Summarize** : regenerate a rich event summary from its source posts
+
+```shell
+python scripts/summarize.py \
+--gym mosaic-boulders \
+--event-name "Telegraph Turn-Up 2026"
+```
+
+6. **Track** workflow
 
 ```shell
 # for instagram post extraction
@@ -74,6 +82,10 @@ python scripts/merge.py \
 --gym mosaic-boulders \
 --from 109 \
 --to 31
+
+python scripts/summarize.py \
+--gym mosaic-boulders \
+--event-name "Telegraph Turn-Up 2026"
 ```
 
 ## Database connection

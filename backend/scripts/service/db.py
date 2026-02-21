@@ -467,6 +467,87 @@ def get_known_events(cur, gym_id: int) -> list[dict]:
     return result
 
 
+def get_event_by_name(cur, gym_id: int, event_name: str) -> dict | None:
+    """
+    Return the events row whose event_name matches *event_name*
+    (case-insensitive exact match) for *gym_id*, or None if not found.
+    """
+    cur.execute(
+        """
+        SELECT id, event_name, event_dates, discipline, summary, merge_reason, hidden
+        FROM   events
+        WHERE  gym_id = %s
+          AND  LOWER(event_name) = LOWER(%s)
+        LIMIT  1
+        """,
+        (gym_id, event_name),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+    cols = ["id", "event_name", "event_dates", "discipline", "summary", "merge_reason", "hidden"]
+    d = {}
+    for c, v in zip(cols, row):
+        if isinstance(v, list):
+            d[c] = [x.isoformat() if hasattr(x, "isoformat") else x for x in v]
+        elif hasattr(v, "isoformat"):
+            d[c] = v.isoformat()
+        else:
+            d[c] = v
+    return d
+
+
+def get_raw_events_for_event(cur, event_id: int) -> list[dict]:
+    """
+    Return all raw_events linked to *event_id*, joined with their source post
+    caption so the summarizer has access to the original text.
+
+    Fields returned per row:
+        id, event_name, event_dates, discipline, type, summary, reason,
+        date_posted, platform, url,
+        post_caption, post_author   (from the posts table; may be None)
+    """
+    cur.execute(
+        """
+        SELECT re.id, re.event_name, re.event_dates, re.discipline, re.type,
+               re.summary, re.reason, re.date_posted, re.platform, re.url,
+               p.caption  AS post_caption,
+               p.author   AS post_author
+        FROM   raw_events re
+        LEFT JOIN posts p ON p.id = re.post_id
+        WHERE  re.event_id = %s
+        ORDER  BY re.date_posted ASC NULLS LAST, re.id ASC
+        """,
+        (event_id,),
+    )
+    cols = [
+        "id", "event_name", "event_dates", "discipline", "type",
+        "summary", "reason", "date_posted", "platform", "url",
+        "post_caption", "post_author",
+    ]
+    rows = cur.fetchall()
+    result = []
+    for row in rows:
+        d = {}
+        for c, v in zip(cols, row):
+            if isinstance(v, list):
+                d[c] = [x.isoformat() if hasattr(x, "isoformat") else x for x in v]
+            elif hasattr(v, "isoformat"):
+                d[c] = v.isoformat()
+            else:
+                d[c] = v
+        result.append(d)
+    return result
+
+
+def update_event_summary(cur, event_id: int, summary: str) -> None:
+    """Overwrite the summary field of an existing events row."""
+    cur.execute(
+        "UPDATE events SET summary = %s WHERE id = %s",
+        (summary, event_id),
+    )
+
+
 def get_unprocessed_posts(cur, gym: str) -> list[dict]:
     """
     Return posts for *gym* (gym slug) that have no raw_events linked yet.

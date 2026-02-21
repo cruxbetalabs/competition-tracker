@@ -190,6 +190,93 @@ def build_extraction_prompt(
     ).rstrip()
     return prompt + filter_section
 
+
+# ── Summarize prompt ──────────────────────────────────────────────────────────
+
+SUMMARIZE_PROMPT = textwrap.dedent(
+    """
+    You are a competition event description writer for a rock climbing gym.
+
+    You will receive a set of posts (social media captions and their previously
+    extracted summaries) that all relate to a single competition event.
+    Your job is to write one authoritative, comprehensive summary paragraph for
+    that event — the kind that would appear on an event listing page.
+
+    Guidelines:
+    - Mirror the organizer's own voice and tone as faithfully as possible.
+      If they are enthusiastic and casual, match that energy; if they are
+      formal, keep it professional.
+    - Synthesize across ALL posts: announcements tell you format and structure,
+      reminders reveal deadlines and logistics, recaps surface results and
+      highlights.
+    - Cover as many of the following as the posts support:
+        • Competition format (e.g. bouldering, top-rope, heat structure)
+        • Categories / divisions / age groups
+        • Prizes, awards, or raffle
+        • Schedule or key dates (registration deadline, comp day, awards)
+        • Registration details (link, cost, capacity, waitlist)
+        • Any unique highlights, sponsors, or community aspects worth noting
+    - Do NOT invent details that are not present in the provided posts.
+    - Format rules (MANDATORY):
+        1. Open with 1–2 prose sentences giving the high-level overview
+           (event name, gym, date, discipline).
+        2. Use `#### ` to introduce each logical section (e.g. #### Categories, #### Schedule,
+           #### Registration, ### Sponsors). `###` is the ONLY allowed header level.
+        3. Under each section, use flat `- ` bullet lists. Each distinct item gets its
+           own bullet. NEVER nest bullets (no `  - ` sub-items).
+        4. Close with 1 prose sentence capturing the community vibe or call to action
+           if the posts support it.
+        5. Separate every section with a blank line (i.e. \\n\\n between sections).
+    - When outputting the JSON value for "summary", represent every line break as \\n
+      so the JSON string remains valid. Do not emit raw unescaped newlines inside the
+      JSON string value.
+    - Tense: use present/future for upcoming events, past tense for recaps;
+      if both exist (the event was announced and has since concluded), prefer
+      past tense describing the full arc.
+
+    Output a single JSON object — no array, no code fences. The "summary" value is a
+    Markdown string (escape any double quotes inside it):
+    {
+        "summary": "<your Markdown description>",
+        "reason":  "<1-2 sentences noting which posts or details most shaped the summary>"
+    }
+    """
+).strip()
+
+
+def build_summarize_prompt_input(
+    event_name: str,
+    raw_events: list[dict],
+) -> str:
+    """
+    Format *raw_events* for the user turn of the summarize LLM call.
+
+    Each item in *raw_events* should be the dict returned by
+    ``get_raw_events_for_event`` — it must carry at minimum ``type``,
+    ``date_posted``, ``url``, and at least one of ``post_caption`` or
+    ``summary``.
+    """
+    lines: list[str] = [f'Event: "{event_name}"', ""]
+    for i, re in enumerate(raw_events, 1):
+        post_type = (re.get("type") or "unknown").upper()
+        date_posted = re.get("date_posted") or "unknown date"
+        url = re.get("url") or ""
+        author = re.get("post_author") or ""
+        caption = (re.get("post_caption") or "").strip()
+        extracted_summary = (re.get("summary") or "").strip()
+
+        lines.append(f"── Post {i} ({post_type}  {date_posted}{f'  @{author}' if author else ''})")
+        if url:
+            lines.append(f"   URL: {url}")
+        if caption:
+            lines.append(f"   Original caption:\n{textwrap.indent(caption, '     ')}")
+        if extracted_summary:
+            lines.append(f"   Extracted summary: {extracted_summary}")
+        lines.append("")
+
+    return "\n".join(lines).rstrip()
+
+
 MERGE_COMMANDS_PROMPT = textwrap.dedent(
     """
     You are a data normalisation assistant for rock climbing competition records.
