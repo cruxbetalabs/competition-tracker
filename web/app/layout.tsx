@@ -20,10 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${spaceGrotesk.variable} font-sans antialiased bg-white`}
-      >
+    <html lang="en" className={spaceGrotesk.variable}>
+      <body className="font-sans antialiased bg-white">
         <TRPCProvider>{children}</TRPCProvider>
       </body>
     </html>

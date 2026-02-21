@@ -12,14 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn, gymAvatarColor, gymInitials } from "@/lib/utils";
 import { trpc } from "@/lib/trpc/client";
 import { ExternalLink, MapPin, CalendarDays, Tag } from "lucide-react";
-
-const DISCIPLINE_STYLES: Record<string, string> = {
-    bouldering: "bg-orange-100 text-orange-700",
-    "top-rope": "bg-blue-100 text-blue-700",
-    lead: "bg-red-100 text-red-700",
-    mixed: "bg-violet-100 text-violet-700",
-    speed: "bg-emerald-100 text-emerald-700",
-};
+import { Badge } from "@/components/ui/badge";
 
 const PLATFORM_LABELS: Record<string, string> = {
     instagram: "Instagram",
@@ -136,15 +129,9 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                 {event.discipline && (
                                     <div className="flex items-center gap-2">
                                         <Tag className="w-4 h-4 shrink-0 text-neutral-400" />
-                                        <span
-                                            className={cn(
-                                                "text-xs font-medium px-2 py-0.5 rounded-full capitalize",
-                                                DISCIPLINE_STYLES[event.discipline] ??
-                                                "bg-neutral-100 text-neutral-600"
-                                            )}
-                                        >
+                                        <Badge variant="secondary" className="capitalize">
                                             {event.discipline}
-                                        </span>
+                                        </Badge>
                                     </div>
                                 )}
                             </div>
