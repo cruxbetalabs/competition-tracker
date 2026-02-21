@@ -105,6 +105,7 @@ async def main(
 
     for p in posts:
         p.setdefault("platform", "instagram")
+        p.setdefault("author", profile)
 
     conn = connect()
     try:

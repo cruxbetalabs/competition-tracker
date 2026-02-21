@@ -14,6 +14,7 @@ import argparse
 import asyncio
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 from crawl4ai import AsyncWebCrawler
 
@@ -22,10 +23,13 @@ async def main(gym: str, url: str) -> None:
     async with AsyncWebCrawler() as crawler:
         result = await crawler.arun(url=url)
 
+    domain = urlparse(url).netloc
+
     posts = [
         {
             "url": url,
             "platform": "website",
+            "author": domain,
             "caption": result.markdown,
             "media_urls": [],
             "timestamp": None,

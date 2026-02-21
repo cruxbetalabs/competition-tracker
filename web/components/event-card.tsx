@@ -86,8 +86,8 @@ export function EventCard({ event, isSelected, onClick }: EventCardProps) {
 
             {/* Details */}
             <div className="flex-1 min-w-0 flex flex-col gap-y-1.5">
-                <div className="flex items-center justify-between">
-                    <span className="font-semibold text-sm text-neutral-900 leading-tight line-clamp-2">
+                <div className="flex items-start justify-between">
+                    <span className="font-semibold text-base text-neutral-900 leading-tight line-clamp-2">
                         {event.eventName}
                     </span>
                     {event.discipline && (

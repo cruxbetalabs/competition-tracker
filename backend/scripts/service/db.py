@@ -129,15 +129,16 @@ def upsert_post(
     specific gym; gym posts without an org can leave organization_id as None.
 
     Expected keys (from *_posts.json):
-        url, platform, caption, media_urls, timestamp
+        url, platform, author, caption, media_urls, timestamp
     """
     cur.execute(
         """
-        INSERT INTO posts (gym_id, organization_id, url, platform, caption, media_urls, timestamp)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO posts (gym_id, organization_id, url, platform, author, caption, media_urls, timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (url) DO UPDATE
             SET gym_id          = COALESCE(EXCLUDED.gym_id,          posts.gym_id),
                 organization_id = COALESCE(EXCLUDED.organization_id, posts.organization_id),
+                author          = COALESCE(EXCLUDED.author,          posts.author),
                 caption         = EXCLUDED.caption,
                 media_urls      = EXCLUDED.media_urls,
                 timestamp       = EXCLUDED.timestamp
@@ -148,6 +149,7 @@ def upsert_post(
             organization_id,
             post["url"],
             post.get("platform"),
+            post.get("author"),
             post.get("caption"),
             post.get("media_urls") or [],
             post.get("timestamp"),
@@ -442,7 +444,8 @@ def get_unprocessed_posts(cur, gym: str) -> list[dict]:
     """
     cur.execute(
         """
-        SELECT p.id, p.url, p.platform, p.caption, p.media_urls, p.timestamp
+        SELECT p.id, p.url, p.platform, p.author, p.caption, p.media_urls,
+               p.timestamp, p.organization_id
         FROM   posts p
         JOIN   gyms  g ON g.id = p.gym_id
         WHERE  g.slug = %s
@@ -453,7 +456,7 @@ def get_unprocessed_posts(cur, gym: str) -> list[dict]:
         """,
         (gym,),
     )
-    cols = ["id", "url", "platform", "caption", "media_urls", "timestamp"]
+    cols = ["id", "url", "platform", "author", "caption", "media_urls", "timestamp", "organization_id"]
     rows = cur.fetchall()
     return [
         {
@@ -477,7 +480,8 @@ def get_unprocessed_org_posts(cur, org_slug: str, gym_id: int) -> list[dict]:
     """
     cur.execute(
         """
-        SELECT p.id, p.url, p.platform, p.caption, p.media_urls, p.timestamp
+        SELECT p.id, p.url, p.platform, p.author, p.caption, p.media_urls,
+               p.timestamp, p.organization_id
         FROM   posts         p
         JOIN   organizations o ON o.id = p.organization_id
         WHERE  o.slug = %s
@@ -491,7 +495,7 @@ def get_unprocessed_org_posts(cur, org_slug: str, gym_id: int) -> list[dict]:
         """,
         (org_slug, gym_id),
     )
-    cols = ["id", "url", "platform", "caption", "media_urls", "timestamp"]
+    cols = ["id", "url", "platform", "author", "caption", "media_urls", "timestamp", "organization_id"]
     rows = cur.fetchall()
     return [
         {
