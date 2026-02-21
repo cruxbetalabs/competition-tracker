@@ -54,66 +54,133 @@ export function EventCard({ event, isSelected, onClick }: EventCardProps) {
             type="button"
             onClick={onClick}
             className={cn(
-                "w-full text-left flex gap-4 rounded-xl border px-4 py-4 transition-all duration-150",
+                "w-full text-left rounded-xl border px-4 py-4 transition-all duration-150",
                 "hover:border-neutral-300 hover:shadow-lg",
                 isSelected
                     ? "border-neutral-400 bg-neutral-100 shadow-md"
                     : "border-neutral-200 bg-white"
             )}
         >
-            {/* Thumbnail */}
-            <div className="shrink-0 w-[98px] h-[98px] rounded-lg overflow-hidden">
-                {event.firstImage ? (
-                    <Image
-                        src={event.firstImage}
-                        alt={event.eventName}
-                        width={98}
-                        height={98}
-                        unoptimized
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div
-                        className={cn(
-                            "w-full h-full flex items-center justify-center text-white font-semibold text-lg",
-                            avatarColor
+            {/* ── Mobile layout (hidden on sm+) ── */}
+            <div className="flex flex-col gap-2 sm:hidden">
+                {/* Two-column: thumbnail + (title + gym/dates) */}
+                <div className="flex gap-3">
+                    <div className="shrink-0 w-15 h-15 rounded-lg overflow-hidden">
+                        {event.firstImage ? (
+                            <Image
+                                src={event.firstImage}
+                                alt={event.eventName}
+                                width={64}
+                                height={64}
+                                unoptimized
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div
+                                className={cn(
+                                    "w-full h-full flex items-center justify-center text-white font-semibold text-base",
+                                    avatarColor
+                                )}
+                            >
+                                {initials}
+                            </div>
                         )}
-                    >
-                        {initials}
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col gap-1">
+                        <span className="font-semibold text-base text-neutral-900 leading-tight line-clamp-2">
+                            {event.eventName}
+                        </span>
+                        {/* Gym name · city and dates row */}
+                        <span className="text-xs text-neutral-600">
+                            {event.gymName ?? slug}
+                            {event.gymCity && (
+                                <span><span className="px-1">·</span>{event.gymCity}</span>
+                            )}
+                        </span>
+                        <span className="text-xs text-neutral-600">
+                            {formatDates(event.eventDates)}
+                        </span>
+                    </div>
+                </div>
+
+                <Separator className="mt-1" />
+
+                {/* Summary */}
+                {event.summary && (
+                    <p className="text-xs text-neutral-600 leading-relaxed line-clamp-2">
+                        {event.summary}
+                    </p>
+                )}
+
+                {/* Badge */}
+                {event.discipline && (
+                    <div>
+                        <Badge variant="secondary" className="capitalize">
+                            {event.discipline}
+                        </Badge>
                     </div>
                 )}
             </div>
 
-            {/* Details */}
-            <div className="flex-1 min-w-0 flex flex-col gap-y-1.5">
-                <div className="flex items-start justify-between">
-                    <span className="font-semibold text-base text-neutral-900 leading-tight line-clamp-2">
-                        {event.eventName}
-                    </span>
-                    {event.discipline && (
-                        <Badge variant="secondary" className="capitalize">
-                            {event.discipline}
-                        </Badge>
+            {/* ── Desktop layout (hidden below sm) ── */}
+            <div className="hidden sm:flex gap-4">
+                {/* Thumbnail */}
+                <div className="shrink-0 w-[104px] h-[104px] rounded-lg overflow-hidden">
+                    {event.firstImage ? (
+                        <Image
+                            src={event.firstImage}
+                            alt={event.eventName}
+                            width={104}
+                            height={104}
+                            unoptimized
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div
+                            className={cn(
+                                "w-full h-full flex items-center justify-center text-white font-semibold text-lg",
+                                avatarColor
+                            )}
+                        >
+                            {initials}
+                        </div>
                     )}
                 </div>
 
-                <div className="flex items-start justify-between">
-                    <span className="text-xs text-neutral-600">
-                        {event.gymName ?? slug}
-                        {formatDates(event.eventDates) ? ` · ${formatDates(event.eventDates)}` : ""}
-                    </span>
-                    <span className="text-xs text-neutral-600 mt-0.5">
-                        {event.gymCity ?? ""}
-                    </span>
+                {/* Details */}
+                <div className="flex-1 min-w-0 flex flex-col gap-y-1">
+                    <div className="flex items-start justify-between">
+                        <span className="font-semibold text-base text-neutral-900 leading-tight line-clamp-2">
+                            {event.eventName}
+                        </span>
+                        {event.discipline && (
+                            <Badge variant="secondary" className="capitalize">
+                                {event.discipline}
+                            </Badge>
+                        )}
+                    </div>
+
+                    <div className="flex items-start justify-between pr-1 mt-0.5">
+                        <span className="text-xs text-neutral-600">
+                            {event.gymName ?? slug}
+                            {event.gymCity ?
+                                <span><span className="px-1">·</span>{event.gymCity}</span> :
+                                ""
+                            }
+                        </span>
+                        <span className="text-xs text-neutral-600 mt-0.5">
+                            {formatDates(event.eventDates) ? `${formatDates(event.eventDates)}` : ""}
+                        </span>
+                    </div>
+
+                    <Separator className="my-1" />
+
+                    {event.summary && (
+                        <p className="text-xs text-neutral-600 leading-relaxed line-clamp-2 mt-0.5">
+                            {event.summary}
+                        </p>
+                    )}
                 </div>
-
-                <Separator className="my-1" />
-
-                {event.summary && (
-                    <p className="text-xs text-neutral-600 leading-relaxed line-clamp-2 mt-0.5">
-                        {event.summary}
-                    </p>
-                )}
             </div>
         </button>
     );

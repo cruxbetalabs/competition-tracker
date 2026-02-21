@@ -53,6 +53,20 @@ python scripts/merge_manual.py \
 # to-do: we may need to support cross-gym merge in the future
 ```
 
+5. **Track**
+
+```shell
+# for instagram post extraction
+python scripts/extract_instagram.py \
+--profile mosaicboulders \
+--gym mosaic-boulders \
+--since 2026-02-20 # get the date of lateset post we fetched
+
+python scripts/parse.py \
+--gym mosaic-boulders \
+--include-org-posts
+```
+
 ## Database connection
 
 ```shell
