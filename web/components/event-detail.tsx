@@ -144,7 +144,7 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                     <Separator />
                                     <div className="flex flex-col">
                                         <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-                                            Summary
+                                            Summary (Auto-generated)
                                         </span>
                                         <div className="mt-3 text-sm text-neutral-700 leading-relaxed prose prose-sm max-w-none">
                                             <ReactMarkdown>{event.summary}</ReactMarkdown>
@@ -165,10 +165,18 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                             {event.sources.map((src) => (
                                                 <li
                                                     key={src.id}
-                                                    className="flex flex-col gap-1.5 rounded-md border hover:border-gray-300 border-gray-100 bg-white px-3 py-2"
+                                                    className="flex flex-col gap-2 rounded-md border hover:border-gray-300 border-gray-100 bg-white px-3 py-2.5"
                                                 >
                                                     <div className="flex items-center justify-between gap-3">
-                                                        <div className="flex items-center gap-2 min-w-0 text-xs">
+                                                        <div className="flex items-center gap-2 min-w-0 -ml-1">
+                                                            {src.type && (
+                                                                <Badge variant="secondary" className="capitalize">
+                                                                    {src.type}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center gap-2 shrink-0 text-xs">
                                                             <span className="text-neutral-700">
                                                                 {formatDate(src.datePosted)}
                                                             </span>
@@ -177,14 +185,6 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                                                     src.platform ??
                                                                     "Unknown"}
                                                             </span>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-2 shrink-0">
-                                                            {src.type && (
-                                                                <Badge variant="secondary" className="capitalize">
-                                                                    {src.type}
-                                                                </Badge>
-                                                            )}
                                                             {src.url && (
                                                                 <a
                                                                     href={src.url}
@@ -200,7 +200,7 @@ export function EventDetail({ eventId, open, onOpenChange }: EventDetailProps) {
                                                     </div>
 
                                                     {src.summary && (
-                                                        <div className="text-xs text-neutral-500 leading-relaxed line-clamp-2 prose prose-xs max-w-none">
+                                                        <div className="text-xs text-neutral-600 leading-relaxed line-clamp-2 prose prose-xs max-w-none">
                                                             <ReactMarkdown>{src.summary}</ReactMarkdown>
                                                         </div>
                                                     )}
