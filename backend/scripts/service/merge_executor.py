@@ -171,6 +171,7 @@ def manual_merge(
         records=all_records,
         reason=reason,
         canonical_name=canonical_name,
+        canonical_summary=to_record.get("summary") or None,
     )
 
     print(
