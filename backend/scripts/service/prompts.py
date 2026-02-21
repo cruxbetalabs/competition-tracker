@@ -115,18 +115,57 @@ EXTRACTION_PROMPT = textwrap.dedent(
 ).strip()
 
 
-def build_extraction_prompt(gym_context: dict | None = None) -> str:
+def build_extraction_prompt(
+    gym_context: dict | None = None,
+    known_events: list[dict] | None = None,
+) -> str:
     """
-    Return EXTRACTION_PROMPT, optionally extended with a target-gym filter.
+    Return EXTRACTION_PROMPT, optionally extended with:
+
+    * A ``known_events`` section listing competitions already on record for
+      this gym — helps the LLM recognise sponsor shoutouts, countdowns
+      without explicit dates, or any post that references a known event name.
+    * A ``TARGET GYM FILTER`` hard rule when *gym_context* is provided, used
+      for org-level posts that may mention multiple member-gym locations.
 
     gym_context should be a dict with at least a ``name`` key and optionally
     a ``city`` key — e.g. ``{"name": "Hyperion Climbing", "city": "Berkeley"}``.
-    When provided, the LLM is instructed to extract only events hosted at that
-    specific gym, which is important when parsing organisation-level posts that
-    may mention events at multiple gyms within the same chain.
     """
+    prompt = EXTRACTION_PROMPT
+
+    if known_events:
+        lines = []
+        for ev in known_events:
+            name = ev.get("event_name") or "?"
+            disc = ev.get("discipline")
+            dates = ev.get("event_dates") or []
+            parts = []
+            if disc:
+                parts.append(disc)
+            if dates:
+                parts.append(", ".join(str(d) for d in dates if d))
+            suffix = f" ({', '.join(parts)})" if parts else ""
+            lines.append(f"  - {name}{suffix}")
+        known_section = textwrap.dedent(
+            f"""
+
+    ── KNOWN EVENTS AT THIS GYM ─────────────────────────────────────────────
+    The following competitions are already on record for this gym.
+    
+    If the post content clearly relates to one of these events — even without
+    explicit competition keywords (e.g. a sponsor shoutout, a countdown post,
+    an athlete call-out, or a schedule update) — extract it using the matching
+    known event name and appropriate type (announcement / reminder / recap).
+    Do NOT use this list to fabricate dates or details not present in the post.
+
+    Known events:
+{chr(10).join(lines)}
+    """
+        ).rstrip()
+        prompt = prompt + known_section
+
     if not gym_context:
-        return EXTRACTION_PROMPT
+        return prompt
     name = gym_context.get("name", "")
     city = gym_context.get("city", "")
     location_str = f"{name}, {city}" if city else name
@@ -149,7 +188,7 @@ def build_extraction_prompt(gym_context: dict | None = None) -> str:
     not at {location_str}.
     """
     ).rstrip()
-    return EXTRACTION_PROMPT + filter_section
+    return prompt + filter_section
 
 MERGE_COMMANDS_PROMPT = textwrap.dedent(
     """

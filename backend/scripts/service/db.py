@@ -436,6 +436,37 @@ def link_raw_events(cur, event_id: int, raw_event_ids: list[int]) -> None:
 # ── Query helpers ─────────────────────────────────────────────────────────────
 
 
+def get_known_events(cur, gym_id: int) -> list[dict]:
+    """
+    Return merged events already stored for *gym_id* from the events table.
+
+    Used to give the LLM context about known competitions at this gym so it
+    can recognise tangentially related posts (sponsor shoutouts, countdowns
+    without explicit dates, etc.) as belonging to a known competition.
+    """
+    cur.execute(
+        """
+        SELECT event_name, discipline, event_dates
+        FROM   events
+        WHERE  gym_id = %s
+        ORDER  BY event_name ASC
+        """,
+        (gym_id,),
+    )
+    cols = ["event_name", "discipline", "event_dates"]
+    rows = cur.fetchall()
+    result = []
+    for row in rows:
+        d = {}
+        for c, v in zip(cols, row):
+            if isinstance(v, list):
+                d[c] = [x.isoformat() if hasattr(x, "isoformat") else x for x in v]
+            else:
+                d[c] = v
+        result.append(d)
+    return result
+
+
 def get_unprocessed_posts(cur, gym: str) -> list[dict]:
     """
     Return posts for *gym* (gym slug) that have no raw_events linked yet.

@@ -31,6 +31,7 @@ from service.db import (
     bulk_insert_raw_events,
     connect,
     ensure_gym,
+    get_known_events,
     get_unprocessed_org_posts,
     get_unprocessed_posts,
 )
@@ -81,6 +82,7 @@ async def main(gym: str, output_path: Path | None, include_org_posts: bool) -> N
         cur = conn.cursor()
         gym_id = ensure_gym(cur, gym)
         posts = get_unprocessed_posts(cur, gym)
+        known_events = get_known_events(cur, gym_id)
 
         org_posts: list[dict] = []
         if include_org_posts:
@@ -125,6 +127,8 @@ async def main(gym: str, output_path: Path | None, include_org_posts: bool) -> N
         return
 
     print(f"[parse] Found {len(posts)} unprocessed post(s) for '{gym}' (total)")
+    if known_events:
+        print(f"[parse] Injecting {len(known_events)} known event(s) into LLM context")
 
     # ── LLM extraction + per-post DB insert ───────────────────────────────────
     from service.prompts import build_extraction_prompt
@@ -145,7 +149,7 @@ async def main(gym: str, output_path: Path | None, include_org_posts: bool) -> N
         ctx = gym_context if is_org_post else None
         print(f"  [llm] {i}/{len(posts)}  {post.get('url', '?')}{' [org→gym filter]' if is_org_post else ''}")
         try:
-            events, summary = await extractor.extract_post(post, gym_context=ctx)
+            events, summary = await extractor.extract_post(post, gym_context=ctx, known_events=known_events or None)
         except Exception as exc:
             print(f"         [warn] extraction failed: {exc}")
             continue

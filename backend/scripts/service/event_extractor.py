@@ -48,6 +48,7 @@ class EventExtractor:
         date_posted: str | None = None,
         author: str | None = None,
         gym_context: dict | None = None,
+        known_events: list[dict] | None = None,
     ) -> tuple[list[dict], dict]:
         """
         Run the extraction prompt over *content* and return
@@ -73,6 +74,12 @@ class EventExtractor:
             Optional dict with ``name`` and ``city`` keys. When provided
             (e.g. when processing organisation-level posts), the LLM is
             instructed to only extract events hosted at this specific gym.
+        known_events : list[dict] | None
+            Optional list of already-merged events for this gym
+            (``event_name``, ``discipline``, ``event_dates``). Injected into
+            the system prompt so the LLM can recognise posts that reference a
+            known competition even without explicit competition keywords
+            (e.g. sponsor shoutouts, countdowns without dates).
         """
 
         header_parts = [
@@ -97,7 +104,8 @@ class EventExtractor:
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": build_extraction_prompt(gym_context)},
+                {"role": "system", "content": build_extraction_prompt(gym_context, known_events)},
+
                 {"role": "user", "content": prompt},
             ],
             temperature=0,
@@ -120,6 +128,7 @@ class EventExtractor:
         self,
         post: dict,
         gym_context: dict | None = None,
+        known_events: list[dict] | None = None,
     ) -> tuple[list[dict], dict]:
         """
         Extract events from a single post dict.
@@ -129,6 +138,9 @@ class EventExtractor:
         gym_context : dict | None
             When set, restricts extraction to events at the named gym.
             Pass when processing organisation-level (org) posts.
+        known_events : list[dict] | None
+            Already-merged events for this gym. Forwarded to the LLM prompt so
+            it can recognise posts that reference a known competition.
         """
         # Build a compact text representation of the post.
         # media_urls are intentionally excluded from the LLM prompt — they are
@@ -146,6 +158,7 @@ class EventExtractor:
             date_posted=date_posted,
             author=post.get("author"),
             gym_context=gym_context,
+            known_events=known_events,
         )
 
         # Copy the original media URLs directly — no LLM involvement.

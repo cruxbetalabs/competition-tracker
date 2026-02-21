@@ -32,7 +32,9 @@ python scripts/extract_website.py \
 ```shell
 python scripts/parse.py \
 --gym pacific-pipe \
---include-org-posts # (also parse unprocessed posts from the org account)
+--include-org-posts 
+# DO NOT include this if the gym 
+# doesn't have a parent organzation
 ```
 
 3. **Merge** : constructing `events` from `raw_events` 
@@ -42,10 +44,10 @@ python scripts/merge.py \
 --gym pacific-pipe
 ```
 
-4. **Manual merge** `events` entries
+4. **Manual Merge** `events` entries
 
 ```shell
-python scripts/merge_manual.py \
+python scripts/merge.py \
 --gym hyperion-climbing \
 --from 74 75 \
 --to 73
@@ -53,7 +55,7 @@ python scripts/merge_manual.py \
 # to-do: we may need to support cross-gym merge in the future
 ```
 
-5. **Track**
+5. **Track** workflow
 
 ```shell
 # for instagram post extraction
@@ -63,8 +65,15 @@ python scripts/extract_instagram.py \
 --since 2026-02-20 # get the date of lateset post we fetched
 
 python scripts/parse.py \
+--gym mosaic-boulders
+
+python scripts/merge.py \
+--gym mosaic-boulders
+
+python scripts/merge.py \
 --gym mosaic-boulders \
---include-org-posts
+--from 109 \
+--to 31
 ```
 
 ## Database connection
@@ -89,6 +98,7 @@ docker compose exec db psql -U crux -d competition_tracker -c "\dt"
 - [ ] write a script that migration the gyms's source + orgianzations source data to database?
     - [ ] create a `source` database
 - [ ] Build an unified `extract.py` that automatically extract posts given a gym's slug
+- [ ] currently when parsing, we skip posts that already has a mapping `raw_event`. but if that's not a event, we are always reparsing the non-event posts. we should find a good way for avoiding this duplicated parse.
 - [ ] An eval playground to test:
     - [ ] mosaic: ig
     - [ ] bridges: ig + website
