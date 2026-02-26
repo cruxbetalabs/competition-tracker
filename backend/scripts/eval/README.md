@@ -59,6 +59,12 @@ python scripts/merge.py \
 # The event name is derived from the title of the series mentioned in the content. The event dates are explicitly stated as February 15 for the qualifiers and April 19 for the finals. The location is confirmed as Pacific Pipe, Oakland, which matches the target gym filter. The discipline is speed climbing, and the type is an announcement since it is the first reveal of the event details.
 ```
 
+```shell
+python scripts/parse.py \
+--gym great-western-power-company \
+--include-org-posts 
+```
+
 ## Benchmark SF
 
 ```shell

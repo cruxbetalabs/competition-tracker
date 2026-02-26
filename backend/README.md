@@ -31,7 +31,7 @@ python scripts/extract_website.py \
 
 ```shell
 python scripts/parse.py \
---gym pacific-pipe \
+--gym great-western-power-company \
 --include-org-posts 
 # DO NOT include this if the gym 
 # doesn't have a parent organzation
@@ -41,7 +41,7 @@ python scripts/parse.py \
 
 ```shell
 python scripts/merge.py \
---gym pacific-pipe
+--gym great-western-power-company
 ```
 
 4. **Manual Merge** `events` entries
@@ -63,7 +63,7 @@ python scripts/summarize.py \
 --event-name "Telegraph Turn-Up 2026"
 ```
 
-6. **Track** workflow
+6. **Track** : workflow to fetch new posts and create/merge events
 
 ```shell
 # for instagram post extraction
