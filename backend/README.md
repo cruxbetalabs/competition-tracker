@@ -80,8 +80,8 @@ python scripts/merge.py \
 
 python scripts/merge.py \
 --gym mosaic-boulders \
---from 109 \
---to 31
+--from 122 \
+--to 123
 
 python scripts/summarize.py \
 --gym mosaic-boulders \
@@ -111,6 +111,7 @@ docker compose exec db psql -U crux -d competition_tracker -c "\dt"
     - [ ] create a `source` database
 - [ ] Build an unified `extract.py` that automatically extract posts given a gym's slug
 - [ ] currently when parsing, we skip posts that already has a mapping `raw_event`. but if that's not a event, we are always reparsing the non-event posts. we should find a good way for avoiding this duplicated parse.
+- [ ] for each post's images, download the image via URL before its URL signature expired
 - [ ] An eval playground to test:
     - [ ] mosaic: ig
     - [ ] bridges: ig + website

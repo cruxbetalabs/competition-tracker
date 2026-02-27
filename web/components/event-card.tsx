@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import Image from "next/image";
 import { cn, gymAvatarColor, gymInitials } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ export function EventCard({ event, isSelected, onClick }: EventCardProps) {
     const slug = event.gymSlug ?? "";
     const avatarColor = gymAvatarColor(slug);
     const initials = gymInitials(event.gymName);
+    const [imgError, setImgError] = React.useState(false);
 
     return (
         <button
@@ -66,7 +68,7 @@ export function EventCard({ event, isSelected, onClick }: EventCardProps) {
                 {/* Two-column: thumbnail + (title + gym/dates) */}
                 <div className="flex gap-3">
                     <div className="shrink-0 w-15 h-15 rounded-lg overflow-hidden">
-                        {event.firstImage ? (
+                        {event.firstImage && !imgError ? (
                             <Image
                                 src={event.firstImage}
                                 alt={event.eventName}
@@ -74,13 +76,11 @@ export function EventCard({ event, isSelected, onClick }: EventCardProps) {
                                 height={64}
                                 unoptimized
                                 className="w-full h-full object-cover"
+                                onError={() => setImgError(true)}
                             />
                         ) : (
                             <div
-                                className={cn(
-                                    "w-full h-full flex items-center justify-center text-white font-semibold text-base",
-                                    avatarColor
-                                )}
+                                className={"w-full h-full flex items-center justify-center text-center text-primary text-xs font-medium bg-gray-300"}
                             >
                                 {initials}
                             </div>
@@ -126,7 +126,7 @@ export function EventCard({ event, isSelected, onClick }: EventCardProps) {
             <div className="hidden sm:flex gap-4">
                 {/* Thumbnail */}
                 <div className="shrink-0 w-[104px] h-[104px] rounded-lg overflow-hidden">
-                    {event.firstImage ? (
+                    {event.firstImage && !imgError ? (
                         <Image
                             src={event.firstImage}
                             alt={event.eventName}
@@ -134,15 +134,13 @@ export function EventCard({ event, isSelected, onClick }: EventCardProps) {
                             height={104}
                             unoptimized
                             className="w-full h-full object-cover"
+                            onError={() => setImgError(true)}
                         />
                     ) : (
                         <div
-                            className={cn(
-                                "w-full h-full flex items-center justify-center text-white font-semibold text-lg",
-                                avatarColor
-                            )}
+                            className={"w-full h-full flex items-center justify-center text-center text-primary text-xs font-medium bg-gray-300"}
                         >
-                            {initials}
+                            Thumbnail<br />N/A
                         </div>
                     )}
                 </div>
